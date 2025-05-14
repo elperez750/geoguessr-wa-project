@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from "axios";
 
 
 const api: AxiosInstance = axios.create({
-    baseURL: "http://127.0.0.1:8001/"
+    baseURL: process.env.NEXT_PUBLIC_BACKEND_URL
 })
 
 

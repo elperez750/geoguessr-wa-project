@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -11,9 +11,16 @@ class Item(BaseModel):
     name: str
 
 
+
+class Anime(BaseModel):
+    title: str
+    episodes: int
+    main_character: str
+
+
 origins = [
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
@@ -24,11 +31,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Sample database as a list of dictionaries
-sample_db = [
-    {"name": "Elliott"},
-    {"name": "Karen"}
+
+#Sample database of anime
+anime_db: List[Anime] = [
+    Anime(title="One Piece", episodes=1020, main_character="Luffy"),
+    Anime(title="Black Clover", episodes=600, main_character="Asta"),
+    Anime(title="Naruto", episodes=700, main_character="Naruto")
 ]
+
+
+@app.get("/anime-titles", response_model=List[Anime])
+def get_anime_titles():
+    return anime_db
+
+
+@app.get("/anime-titles/{anime_title}", response_model=Anime)
+def get_anime_titles(anime_title: str):
+    for anime in anime_db:
+        if anime.title == anime_title:
+            return anime
+    return "Anime not found"
+
+
+@app.post("/anime-titles", response_model=Anime)
+def add_new_anime_title(new_anime: Anime):
+    for anime in anime_db:
+        if anime.title == new_anime.title:
+            return {"error": "Anime already in database"}
+    else:
+        anime_db.append(new_anime)
+        return new_anime
+
 
 
 @app.get("/")
