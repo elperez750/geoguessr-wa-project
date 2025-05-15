@@ -2,6 +2,7 @@
 
 import React, {useState, useEffect } from "react";
 import api from "...@/app/api";
+import MapComponent from "...@/app/components/MapComponent";
 
 interface AnimeInterface {
     title: string;
@@ -10,7 +11,6 @@ interface AnimeInterface {
 }
 
 export const GetInfoFromBackend = () => {
-
 
 
     const [Anime, setAnime] = useState<AnimeInterface[]>([])
@@ -71,7 +71,9 @@ export const GetInfoFromBackend = () => {
     }, [])
 
 
-    return (
+
+
+        return (
         <div className="flex flex-col p-4">
             <h2 className="text-xl font-bold mb-4">Get Information for anime</h2>
 
@@ -136,7 +138,11 @@ export const GetInfoFromBackend = () => {
                     <div>Title</div>
                     <div>Episodes</div>
                     <div>Main Character</div>
+
+
                 </div>
+
+
 
 
                 <ul>
@@ -151,6 +157,8 @@ export const GetInfoFromBackend = () => {
 
                     ))}
                 </ul>
+
+                <MapComponent />
 
 
             </div>
