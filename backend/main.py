@@ -69,19 +69,6 @@ def root():
     return {"message": "updated message"}
 
 
-@app.get("/items", response_model=List[Item])
-def get_items():
-    return sample_db
-
-
-@app.post("/items")
-def post_item(item: Item):
-    # Convert the Pydantic model to a dictionary and append to the list
-    sample_db.append({"name": item.name})
-
-    # Return the newly added item
-    return item
-
 
 if __name__ == "__main__":
     # Fixed host IP - it should be 127.0.0.1 not 0.0.0.1

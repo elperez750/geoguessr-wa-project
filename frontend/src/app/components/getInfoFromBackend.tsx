@@ -3,6 +3,8 @@
 import React, {useState, useEffect } from "react";
 import api from "...@/app/api";
 import MapComponent from "...@/app/components/MapComponent";
+import StreetViewComponent from "...@/app/components/StreetViewComponent";
+import {APIProvider} from "@vis.gl/react-google-maps";
 
 interface AnimeInterface {
     title: string;
@@ -158,7 +160,11 @@ export const GetInfoFromBackend = () => {
                     ))}
                 </ul>
 
-                <MapComponent />
+                <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY}  libraries={["streetView"]}>
+                    <MapComponent />
+
+                </APIProvider>
+
 
 
             </div>
