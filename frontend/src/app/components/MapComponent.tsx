@@ -4,13 +4,7 @@ import {APIProvider, Map,  Marker,
     useMarkerRef, MapMouseEvent} from "@vis.gl/react-google-maps";
 import React, {useState} from "react";
 import StreetViewComponent from "...@/app/components/StreetViewComponent";
-
-type Coordinate = {
-
-    lat: number;
-    lng: number;
-
-}
+import {Coordinate} from "...@/app/types/mapTypes";
 
 
 const MapComponent = () => {
@@ -58,7 +52,11 @@ return (
         <h1>{clickCoords?.lng}</h1>
 
         {clickCoords?.lat && clickCoords?.lng &&
-            <StreetViewComponent lat={clickCoords.lat} lng={clickCoords.lng}/>
+            <div className='flex justify-center items-center'>
+
+                <StreetViewComponent lat={clickCoords.lat} lng={clickCoords.lng}/>
+
+            </div>
 
         }
 

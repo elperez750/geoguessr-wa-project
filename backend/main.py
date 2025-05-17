@@ -1,20 +1,28 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Query
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
+from geopy.geocoders import Nominatim
+import random
+from dotenv import load_dotenv
+import os
+import requests
 app = FastAPI()
 
+geolocator = Nominatim(user_agent="geoguessr-wa-project")
+load_dotenv()
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+print(f"GOOGLE_API_KEY: {GOOGLE_API_KEY}")
 
-class Item(BaseModel):
-    name: str
+class Guess(BaseModel):
+    lat: float
+    lng: float
+    guess_number: int
 
 
 
-class Anime(BaseModel):
-    title: str
-    episodes: int
-    main_character: str
+
 
 
 origins = [
@@ -32,35 +40,42 @@ app.add_middleware(
 )
 
 
-#Sample database of anime
-anime_db: List[Anime] = [
-    Anime(title="One Piece", episodes=1020, main_character="Luffy"),
-    Anime(title="Black Clover", episodes=600, main_character="Asta"),
-    Anime(title="Naruto", episodes=700, main_character="Naruto")
-]
+# def get_valid_street_view(lat, lng):
+#     key = GOOGLE_API_KEY
+#     url = f"https://maps.googleapis.com/maps/api/streetview/metadata?location={lat},{lng}&radius=50&key={key}"
+#     response = requests.get(url).json()
+#     if response.get("status") == "OK":
+#         return {
+#             "pano_id": response.get("pano_id"),
+#             "lat": response.get("geometry").get("location").get("lat"),
+#             "lng": response.get("geometry").get("location").get("lng"),
+#         }
+#     return None
+#
+#
+#
+# while True:
+#     lat = random.uniform(45.5, 49.0)
+#     lng = random.uniform(-124.8, -116.9)
+#
+#     result = get_valid_street_view(lat, lng)
+#     if result:
+#         break
 
 
-@app.get("/anime-titles", response_model=List[Anime])
-def get_anime_titles():
-    return anime_db
+# print(result.get("pano_id"))
 
-
-@app.get("/anime-titles/{anime_title}", response_model=Anime)
-def get_anime_titles(anime_title: str):
-    for anime in anime_db:
-        if anime.title == anime_title:
-            return anime
-    return "Anime not found"
-
-
-@app.post("/anime-titles", response_model=Anime)
-def add_new_anime_title(new_anime: Anime):
-    for anime in anime_db:
-        if anime.title == new_anime.title:
-            return {"error": "Anime already in database"}
+@app.get("/get-location")
+def get_location(lat:float = Query(...), lng: float = Query(...), guess_number: int = Query(...)):
+    print(lat, lng, guess_number)
+    location = geolocator.geocode(f"{lat},{lng}")
+    if location:
+        address = location.address
+        return address
     else:
-        anime_db.append(new_anime)
-        return new_anime
+        return f"Location information not found for coordinates: {lat}, {lng}"
+
+
 
 
 
@@ -69,7 +84,3 @@ def root():
     return {"message": "updated message"}
 
 
-
-if __name__ == "__main__":
-    # Fixed host IP - it should be 127.0.0.1 not 0.0.0.1
-    uvicorn.run(app, host="127.0.0.1", port=8000)
