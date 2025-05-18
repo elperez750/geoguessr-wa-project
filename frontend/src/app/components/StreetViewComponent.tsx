@@ -17,7 +17,7 @@ const StreetViewComponent = ({lat, lng} : Coordinate) => {
 
     const getLocation = async() => {
         console.log("Calling getLocation")
-        const location = await api.get("/get-location/", {
+        const location = await api.get("game/get-location", {
                     params: {
                         lat: lat,
                         lng: lng,

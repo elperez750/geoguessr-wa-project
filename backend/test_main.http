@@ -13,5 +13,7 @@ GET http://127.0.0.1:8000/anime-titles/
 Accept: application/json
 
 ###
-GET http://127.0.0.1:8000/get-location?lat=40.7128&lng=-74.0060&guess_number=2
+GET http://127.0.0.1:8000/game/get-location?lat=40.7128&lng=-74.0060&guess_number=2
 Accept: application/json
+
+
