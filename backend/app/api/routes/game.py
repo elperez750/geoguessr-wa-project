@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Query
-from app.services import get_address_from_coordinates, return_location_object
+from fastapi import APIRouter, Query, Depends
+from app.services import get_address_from_coordinates, random_location
+from app.models import Location
+from app.db import get_db
+from sqlalchemy.orm import Session
+import random
 
 router = APIRouter()
 
@@ -14,12 +18,18 @@ def get_location(lat:float = Query(...), lng: float = Query(...), guess_number: 
 
 
 
+@router.get('get-location-from-db')
+def get_location_from_db(db: Session = Depends(get_db)):
+    number_of_locations = db.query(Location).count()
+    print(number_of_locations)
+    random_id = random.randint(1, number_of_locations)
+    location = random_location(random_id, db)
+    return location
 
-@router.get('/get-map')
-def get_map():
-    current_map = return_location_object()
-    print(current_map["lat"], current_map["lng"], current_map["pano-id"])
-    return current_map["pano-id"]
+
+
+
+
 
 
 

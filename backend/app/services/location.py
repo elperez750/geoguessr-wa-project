@@ -6,8 +6,10 @@ import os
 import json
 import psycopg2
 import time
-
-
+from app.db import get_db
+from app.models import Location
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 load_dotenv(verbose=True)
 
@@ -18,9 +20,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 
-print(DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT)
-BATCH_SIZE = 200
-buffer = []
+
 #loading geolocator
 geolocator = Nominatim(user_agent="geoguessr-wa-project")
 
@@ -36,4 +36,12 @@ def get_address_from_coordinates(lat: float, lng: float):
     else:
         return None
 
+
+
+def random_location(random_id: int, db: Session = Depends(get_db)):
+    location = db.query(Location).filter(Location.id == random_id).first()
+    print(location)
+    if not location:
+        return {"error": "Location not found"}
+    return location
 
