@@ -1,3 +1,4 @@
+import math
 from geopy.geocoders import Nominatim
 import random
 from dotenv import load_dotenv
@@ -38,10 +39,31 @@ def get_address_from_coordinates(lat: float, lng: float):
 
 
 
-def random_location(random_id: int, db: Session = Depends(get_db)):
-    location = db.query(Location).filter(Location.id == random_id).first()
-    print(location)
-    if not location:
+def get_random_pano_id(random_id: int, db: Session = Depends(get_db)):
+    location_pano_id = db.query(Location.pano_id).filter(Location.id == random_id).scalar()
+    if not location_pano_id:
         return {"error": "Location not found"}
-    return location
+    return location_pano_id
 
+
+
+
+def haversine_formula(lat1, lat2, lng1, lng2):
+    r = 6371
+    lat1_radians = math.radians(lat1)
+    lat2_radians = math.radians(lat2)
+    lng1_radians = math.radians(lng1)
+    lng2_radians = math.radians(lng2)
+
+    difference_in_lat = lat2_radians - lat1_radians
+    difference_in_lng = lng2_radians - lng1_radians
+
+    a = (pow(math.sin(difference_in_lat/2), 2)) + (math.cos(lat1_radians)) * (math.cos(lat2_radians)) * (pow(math.sin(difference_in_lng/2), 2))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = r * c
+    return d
+
+
+
+def fetch_current_round_coordinates():
+    pass

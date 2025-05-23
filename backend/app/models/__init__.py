@@ -1,4 +1,4 @@
-from app.models.game import Location
+from app.models.game import Location, Round, Game
 
 
-__all__ = ["Location"]
+__all__ = ["Location", "Round", "Game"]

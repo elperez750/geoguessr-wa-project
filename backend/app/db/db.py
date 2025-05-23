@@ -15,8 +15,6 @@ engine = create_engine(DB_URL)
 
 Session = sessionmaker(bind=engine)
 
-Base = declarative_base()
-
 
 def get_db():
     db = Session()

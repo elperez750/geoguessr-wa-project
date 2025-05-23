@@ -1,87 +1,78 @@
 import { useRef, useEffect, useState } from "react";
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
-import {Coordinate} from "...@/app/types/mapTypes";
-import api from "...@/app/api";
-
-
-const StreetViewComponent = ({lat, lng} : Coordinate) => {
+import api from "@/app/api";
+import {Button} from "@/components/ui/button";
+import MapComponent from "@/app/components/MapComponent";
+const StreetViewComponent = () => {
 
 
     const streetViewLib = useMapsLibrary('streetView');
 
 
     const guessNumberRef = useRef(1)
-    const [location, setLocation] = useState("");
+    const [panoId, setPanoId] = useState();
     const streetViewRef = useRef<HTMLDivElement | null>(null);
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 
-    const getLocation = async() => {
-        console.log("Calling getLocation")
-        const location = await api.get("game/get-location", {
-                    params: {
-                        lat: lat,
-                        lng: lng,
-                        guess_number: guessNumberRef.current
-            }
 
-
-        })
-        console.log(location.data);
-        setLocation(location.data);
-        guessNumberRef.current += 1
-        return location;
-
-
+    async function fetchPano() {
+        console.log("Calling getLocation");
+        const response = await api.get("game/get-location-from-db");
+        console.log(response);
+        const newPano = response.data;
+        console.log("Got pano:", newPano);
+        setPanoId(newPano);
+        guessNumberRef.current += 1;
     }
+
+    useEffect(() => {
+
+        fetchPano();
+    }, []);
 
 
     useEffect(() => {
-        if (!streetViewLib || !streetViewRef.current) return;
+        if (!streetViewLib || !streetViewRef.current || !panoId) return;
 
         if (!panoramaRef.current) {
             panoramaRef.current = new streetViewLib.StreetViewPanorama(streetViewRef.current, {
-                position: {lat, lng},
+                pano: panoId,
                 pov: {heading: 100, pitch: 0},
                 visible: true,
+                addressControl: false,
+                showRoadLabels: false,
             });
 
         }
         else{
-            panoramaRef.current.setPosition({lat, lng})
+            panoramaRef.current.setPano(panoId)
         }
 
 
 
-    },[streetViewLib]);
+    },[streetViewLib, panoId]);
 
 
 
-    useEffect(() => {
 
-        if (panoramaRef.current && streetViewLib) {
-            panoramaRef.current.setPosition({lat, lng});
-            getLocation()
-
-        }
-    }, [lat, lng, streetViewLib])
 
     return (
-        <div>
-            <div
-                ref={streetViewRef}
-                style={{width: "70vw", height: "100vh"}}
-            >
+        <div className="relative w-screen h-[90vh]">
+            {/* Street View container */}
+            <div ref={streetViewRef} className="w-full h-full rounded-lg" />
 
-
+            {/* MapComponent overlay in bottom-right corner */}
+            <div className="absolute bottom-4 left-4 z-20 flex flex-col items-center">
+                <div className="w-[300px] h-[200px] rounded-lg overflow-hidden shadow-lg">
+                    <MapComponent />
+                </div>
+                <div className="mt-2">
+                    <Button className={'w-[300px]'} onClick={fetchPano}>Guess</Button>
+                </div>
             </div>
-
-
-            {location && <h1>{location}</h1>}
-
         </div>
+    );
 
-
-    )
 
 }
 

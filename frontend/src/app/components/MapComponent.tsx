@@ -1,74 +1,56 @@
 "use client"
 
-import {APIProvider, Map,  Marker,
-    useMarkerRef, MapMouseEvent} from "@vis.gl/react-google-maps";
-import React, {useState} from "react";
-import StreetViewComponent from "...@/app/components/StreetViewComponent";
-import {Coordinate} from "...@/app/types/mapTypes";
-
+import { Map, Marker, MapMouseEvent } from "@vis.gl/react-google-maps";
+import React, { useState } from "react"; // Added useRef import
+import { CoordinateType } from "@/app/types/mapTypes";
 
 const MapComponent = () => {
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    const [markerRef] = useMarkerRef();
 
-    const [clickCoords, setClickCoords] = useState<Coordinate | null>();
+    const [clickCoords, setClickCoords] = useState<CoordinateType | null>(null); // Fixed initialization
+
+    // Fixed typing for the map parameter
 
 
     const handleClickOnMap = (e: MapMouseEvent) => {
         if (e.detail.latLng) {
             const latLng = e.detail.latLng;
-            const lat = latLng.lat
+            const lat = latLng.lat;
             const lng = latLng.lng;
 
             setClickCoords({ lat: lat, lng: lng });
         }
     }
 
-
     if (!googleMapsApiKey) {
         return <p className="text-red-500">Cannot find the Apikey</p>
     }
 
-
-
-return (
-    <>
-
+    return (
+        <>
             <Map
-                style={{ width: "100vw", height: "50vh" }}
-                defaultCenter={{ lat: 22.54992, lng: 0 }}
-                defaultZoom={3}
+                style={{ width: "80vw", height: "50vh" }}
+                defaultCenter={{ lat: 47.4220, lng: -120.3342 }}
+                defaultZoom={6} // Changed to 7 from 10
                 gestureHandling="greedy"
                 disableDefaultUI={true}
                 onClick={handleClickOnMap}
                 draggableCursor="pointer"
                 draggingCursor="crosshair"
             >
-                <Marker ref={markerRef} position={{lat: 47.6061, lng: -122.3328}} />
-                <Marker position={clickCoords} />
+
+                {clickCoords && <Marker position={clickCoords} />}
             </Map>
 
-        <h1>{clickCoords?.lat}</h1>
-        <h1>{clickCoords?.lng}</h1>
-
-        {clickCoords?.lat && clickCoords?.lng &&
-            <div className='flex justify-center items-center'>
-
-                <StreetViewComponent lat={clickCoords.lat} lng={clickCoords.lng}/>
-
-            </div>
-
-        }
-
-
-
-
-    </>
-
-
-)
-
+            {clickCoords && (
+                <div className="mt-4">
+                    <h2 className="text-lg font-medium">Selected Coordinates:</h2>
+                    <p>Latitude: {clickCoords.lat.toFixed(4)}</p>
+                    <p>Longitude: {clickCoords.lng.toFixed(4)}</p>
+                </div>
+            )}
+        </>
+    );
 }
-
 
 export default MapComponent;

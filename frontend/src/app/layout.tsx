@@ -27,13 +27,9 @@ export default function RootLayout({
         <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 text-gray-900 min-h-screen`}
         >
-        <header className="w-full p-4 bg-white shadow-md">
-            <div className="container mx-auto font-semibold text-xl">
-                GeoGuessr WA
-            </div>
-        </header>
 
-        <main className="container mx-auto p-4">{children}</main>
+
+        <main className="">{children}</main>
 
         <footer className="w-full p-4 text-center text-sm text-gray-500">
             © {new Date().getFullYear()} GeoGuessr WA. All rights reserved.
