@@ -39,7 +39,8 @@ def get_address_from_coordinates(lat: float, lng: float):
 
 
 
-def get_random_pano_id(random_id: int, db: Session = Depends(get_db)):
+def get_random_pano_id(random_id: int):
+    db = get_db()
     location_pano_id = db.query(Location.pano_id).filter(Location.id == random_id).scalar()
     if not location_pano_id:
         return {"error": "Location not found"}

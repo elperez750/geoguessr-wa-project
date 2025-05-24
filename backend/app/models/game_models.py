@@ -1,7 +1,6 @@
 
 from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
-
 Base = declarative_base()
 
 class Location(Base):
@@ -23,8 +22,8 @@ class Game(Base):
     completed_at = Column(DateTime)
     total_score = Column(Float)
     total_distance = Column(Float)
-    rounds = relationship('Round', backref='game', lazy='dynamic')
-
+    rounds = relationship('Round', back_populates='game')
+    user = relationship('User', back_populates='game')
 
 
 class Round(Base):
