@@ -1,4 +1,4 @@
-import {GetInfoFromBackend} from "@/app/components/getInfoFromBackend";
+import {GetInfoFromBackend} from "@/app/components/map/getInfoFromBackend";
 
 export default function PlayPage() {
     return (

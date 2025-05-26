@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
+import {AuthProvider} from "@/app/context/AuthContext";
+import { Toaster } from "sonner";
+import Navbar from "@/app/components/Navbar";
 const geistSans = Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"],
@@ -27,6 +29,10 @@ export default function RootLayout({
         <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 text-gray-900 min-h-screen`}
         >
+        <AuthProvider>
+            <Navbar />
+
+        <Toaster richColors closeButton position="bottom-right" />
 
 
         <main className="">{children}</main>
@@ -34,6 +40,8 @@ export default function RootLayout({
         <footer className="w-full p-4 text-center text-sm text-gray-500">
             © {new Date().getFullYear()} GeoGuessr WA. All rights reserved.
         </footer>
+        </AuthProvider>
+
         </body>
         </html>
     );

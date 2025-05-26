@@ -1,6 +1,7 @@
 
 from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
+
 Base = declarative_base()
 
 class Location(Base):
@@ -11,7 +12,7 @@ class Location(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     pano_id = Column(Text, unique=True, nullable=False)
-    round = relationship("Round", back_populates="locations")
+    # round = relationship("Round", back_populates="location")
 
 
 class Game(Base):
@@ -22,8 +23,8 @@ class Game(Base):
     completed_at = Column(DateTime)
     total_score = Column(Float)
     total_distance = Column(Float)
-    rounds = relationship('Round', back_populates='game')
-    user = relationship('User', back_populates='game')
+    # rounds = relationship('Round', back_populates='game')
+    # user = relationship('User', back_populates='game')
 
 
 class Round(Base):
@@ -37,8 +38,8 @@ class Round(Base):
     guess_lat = Column(Float)
     guess_lng = Column(Float)
     location_id = Column(Integer, ForeignKey('locations.id'))
-
-    game = relationship('Game', backref='rounds')
+    # location = relationship('Location', back_populates='round')
+    # game = relationship('Game', back_populates='round')
 
 
 

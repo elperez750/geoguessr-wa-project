@@ -5,27 +5,38 @@ from datetime import datetime, timedelta
 from passlib.hash import pbkdf2_sha256
 from app.db import get_db
 from app.models import User
-
+from fastapi import HTTPException, Depends, Request
 SECRET_KEY = str(os.getenv("SECRET_KEY"))
 
-def create_access_token(user_id:int, username: str, expires_minutes:float=30):
-    expire = datetime.now() + timedelta(minutes=expires_minutes)
-    expire_timestamp = expire.timestamp()
+def create_access_token(user_id:int, username: str, email: str):
 
-    token = jwt.encode({'user_id': user_id, 'username': username, 'exp': expire_timestamp}, SECRET_KEY, algorithm='HS256')
+    token = jwt.encode({'user_id': user_id, 'username': username, 'email': email}, SECRET_KEY, algorithm='HS256')
     return token
 
 
-
-def verify_token(token, value_to_retrieve=None):
+def verify_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        print("payload", payload)
+        return payload
+
     except JWTError:
         raise Exception('Invalid token')
 
-    if value_to_retrieve:
-        return payload[value_to_retrieve]
-    return payload
+
+
+
+def get_user_from_cookie(request):
+    token = request.cookies.get('access_token')
+    if not token:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    try:
+        payload = verify_token(token)
+        return payload
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
 
 
 def hash_password(password):
@@ -59,14 +70,23 @@ def create_user(db, username:str, password:str, email:str):
     )
     db.add(new_user)
     db.commit()
-    return new_user
+    return {"id": new_user.id, "username": new_user.username, "email": new_user.email, "created_at": new_user.created_at}
 
 
 
 def verify_credentials(db, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
     if user and verify_password(password, user.password):
-        return user
+        user_info_to_return = {
+            'id': user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at,
+        }
+
+
+
+        return user_info_to_return
     return None
 
 

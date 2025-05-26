@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import api from "@/app/api";
 import {Button} from "@/components/ui/button";
-import MapComponent from "@/app/components/MapComponent";
+import MapComponent from "@/app/components/map/MapComponent";
 const StreetViewComponent = () => {
 
 

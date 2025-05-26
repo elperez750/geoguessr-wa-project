@@ -2,7 +2,7 @@
 
 import React from "react";
 import {APIProvider} from "@vis.gl/react-google-maps";
-import StreetViewComponent from "@/app/components/StreetViewComponent";
+import StreetViewComponent from "@/app/components/map/StreetViewComponent";
 
 export const GetInfoFromBackend = () => {
 

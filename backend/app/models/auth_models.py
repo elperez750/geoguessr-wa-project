@@ -16,3 +16,4 @@ class User(Base):
     password = Column(Text, nullable=False)
     email = Column(Text, unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
+    # game = relationship('Game', back_populates='user')
