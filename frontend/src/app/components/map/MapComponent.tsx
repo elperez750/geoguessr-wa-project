@@ -30,8 +30,8 @@ const MapComponent = () => {
         <>
             <Map
                 style={{ width: "80vw", height: "50vh" }}
-                defaultCenter={{ lat: 47.4220, lng: -120.3342 }}
-                defaultZoom={6} // Changed to 7 from 10
+                defaultCenter={{ lat: 40.0000, lng: -114.3342 }}
+                defaultZoom={5} // Changed to 7 from 10
                 gestureHandling="greedy"
                 disableDefaultUI={true}
                 onClick={handleClickOnMap}

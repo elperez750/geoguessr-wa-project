@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from passlib.hash import pbkdf2_sha256
 from app.db import get_db
 from app.models import User
+
 from fastapi import HTTPException, Depends, Request
 SECRET_KEY = str(os.getenv("SECRET_KEY"))
 
@@ -24,12 +25,15 @@ def verify_token(token):
         raise Exception('Invalid token')
 
 
-
-
 def get_user_from_cookie(request):
-    token = request.cookies.get('access_token')
+    print("All cookies received:", dict(request.cookies))
+    print("Cookie keys:", list(request.cookies.keys()))
+    token = request.cookies.get("access_token")
+    print("Access token cookie:", token)
+
     if not token:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        print("No access_token cookie found!")
+        raise HTTPException(status_code=401, detail="No access token cookie")
 
     try:
         payload = verify_token(token)
@@ -47,9 +51,8 @@ def hash_password(password):
 
 def verify_password(plain_password, hashed_password):
     if pbkdf2_sha256.verify(plain_password, hashed_password):
-        return "The password was correct"
-    else:
-        return "The password was incorrect"
+        return True
+    return False
 
 
 
@@ -76,6 +79,8 @@ def create_user(db, username:str, password:str, email:str):
 
 def verify_credentials(db, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
+    print(user.email)
+    print(verify_password(password, user.password))
     if user and verify_password(password, user.password):
         user_info_to_return = {
             'id': user.id,

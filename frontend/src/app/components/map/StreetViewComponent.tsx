@@ -10,7 +10,7 @@ const StreetViewComponent = () => {
 
 
     const guessNumberRef = useRef(1)
-    const [panoId, setPanoId] = useState();
+    const [panoId, setPanoId] = useState<string>("");
     const streetViewRef = useRef<HTMLDivElement | null>(null);
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 

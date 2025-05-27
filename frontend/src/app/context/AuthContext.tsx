@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.post("/auth/login", { email, password })
       const { user: userData } = response.data
-
+      console.log(userData)
       // Set user data in state
       setUser(userData)
       setIsAuthenticated(true)
@@ -118,8 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem("auth_token")
-    api.defaults.headers.common["Authorization"] = ""
     setUser(null)
     setIsAuthenticated(false)
     

@@ -1,12 +1,7 @@
 import math
 from geopy.geocoders import Nominatim
-import random
 from dotenv import load_dotenv
-import requests
 import os
-import json
-import psycopg2
-import time
 from app.db import get_db
 from app.models import Location
 from sqlalchemy.orm import Session

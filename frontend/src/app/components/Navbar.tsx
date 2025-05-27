@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X, MapPin } from "lucide-react"
+import { useAuth } from "@/app/context/AuthContext"
 
 export default function Navbar() {
+  const { user, isAuthenticated, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -70,23 +72,41 @@ export default function Navbar() {
             </nav>
 
             {/* Auth Buttons */}
-            <div className="hidden md:flex items-center gap-4">
-              <Link
-                  href="/authentication"
-                  className="text-slate-700 hover:text-slate-900 font-medium transition-colors duration-200"
-              >
-                Login
-              </Link>
-              <Link
-                  href="/authentication"
-                  className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white
+            {isAuthenticated && user ? (
+
+                <div className="hidden md:flex items-center gap-4">
+                  <div className="flex items-center gap-4">{user.email}</div>
+                  <Link
+                      href=""
+                      onClick={logout}
+                      className="text-slate-700 hover:text-slate-900 font-medium transition-colors duration-200"
+                  >
+                    Logout
+                  </Link>
+                </div>
+            ):
+                <div className="hidden md:flex items-center gap-4">
+                  <Link
+                      href="/authentication"
+                      className="text-slate-700 hover:text-slate-900 font-medium transition-colors duration-200"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                      href="/authentication"
+                      className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white
                         px-5 py-2 rounded-xl font-medium transition-all duration-200
                         hover:shadow-lg hover:shadow-emerald-500/25 hover:-translate-y-0.5
                         active:translate-y-0"
-              >
-                Get Started
-              </Link>
-            </div>
+                  >
+                    Get Started
+                  </Link>
+                </div>
+
+
+            }
+
+
 
             {/* Mobile Menu Button */}
             <button
@@ -125,6 +145,8 @@ export default function Navbar() {
                 >
                   Play
                 </Link>
+
+
                 <Link
                     href="/authentication"
                     className="text-slate-700 hover:text-slate-900 hover:bg-slate-50

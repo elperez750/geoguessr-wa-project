@@ -9,7 +9,9 @@ import Mountains from "@/assets/images/mountains.avif";
 export default function Home() {
     const router = useRouter();
 
+
     const handlePlayGame = () => {
+
         router.push("/play");
     };
 

@@ -39,14 +39,18 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
 @router.post('/login')
 async def login_user(request: UserLogin, response: Response, db: Session = Depends(get_db)):
     user = verify_credentials(db, request.email, request.password)
+    print(user)
     if user:
         access_token = create_access_token(user['id'], user['username'], user['email'])
+        print(access_token)
         response.set_cookie(key="access_token",
                             value=access_token,
                             httponly=True,
                             secure=False,
                             samesite='lax',
+                            path="/"
                         )
+
         return {"user": user}
     else:
         raise HTTPException(status_code=401, detail="Invalid email or password")
