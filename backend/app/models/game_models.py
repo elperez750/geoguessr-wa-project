@@ -12,21 +12,22 @@ class Location(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     pano_id = Column(Text, unique=True, nullable=False)
-    round = relationship("Round", back_populates="location")
+    round = relationship("Round", back_populates="location", uselist=False)
 
 
 class Game(Base):
     __tablename__ = 'games'
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
     started_at = Column(DateTime, default=datetime.now)
     completed_at = Column(DateTime)
     total_score = Column(Float)
     total_distance = Column(Float)
     locations = Column(JSON)
 
-    # rounds = relationship('Round', back_populates='game')
-    # user = relationship('User', back_populates='game')
+    rounds = relationship('Round', back_populates='game')
+    user = relationship('User', back_populates='game')
 
 class Round(Base):
     __tablename__ = 'rounds'
@@ -38,7 +39,7 @@ class Round(Base):
     location_id = Column(Integer, ForeignKey('locations.id'))
     location = relationship('Location', back_populates='round')
     user_rounds = relationship('UserRound', back_populates='round')
-
+    game = relationship('Game', back_populates='rounds')
 
 class UserRound(Base):
     __tablename__ = 'user_rounds'

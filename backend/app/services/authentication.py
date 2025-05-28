@@ -37,6 +37,7 @@ def get_user_from_cookie(request):
 
     try:
         payload = verify_token(token)
+        print("Payload:", payload)
         return payload
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))

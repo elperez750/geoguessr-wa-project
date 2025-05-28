@@ -16,4 +16,4 @@ class User(Base):
     email = Column(Text, unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
     user_rounds = relationship('UserRound', back_populates='user')
-    # game = relationship('Game', back_populates='user')
+    game = relationship('Game', back_populates='user')

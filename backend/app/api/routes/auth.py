@@ -39,15 +39,13 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
 @router.post('/login')
 async def login_user(request: UserLogin, response: Response, db: Session = Depends(get_db)):
     user = verify_credentials(db, request.email, request.password)
-    print(user)
     if user:
         access_token = create_access_token(user['id'], user['username'], user['email'])
-        print(access_token)
         response.set_cookie(key="access_token",
                             value=access_token,
                             httponly=True,
-                            secure=False,
-                            samesite='lax',
+                            secure=True,
+                            samesite='none',
                             path="/"
                         )
 
@@ -60,9 +58,7 @@ async def login_user(request: UserLogin, response: Response, db: Session = Depen
 
 @router.get('/me')
 def get_user_details(request: Request):
-    print(request)
     current_user = get_user_from_cookie(request)
-    print(current_user)
     if current_user:
         return current_user
     else:

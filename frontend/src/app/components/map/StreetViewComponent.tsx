@@ -15,9 +15,20 @@ const StreetViewComponent = () => {
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 
 
+
+
     async function fetchPano() {
         console.log("Calling getLocation");
-        const response = await api.get("game/get-location-from-db");
+        if (!panoId) {
+            const response = await api.get("game/start-game");
+            console.log(response);
+            const newPano = response.data.pano_id;
+            console.log("Got pano:", newPano);
+            setPanoId(newPano);
+            return;
+        }
+
+        const response = await api.get("game/next-round");
         console.log(response);
         const newPano = response.data;
         console.log("Got pano:", newPano);
