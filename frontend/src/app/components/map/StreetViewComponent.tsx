@@ -3,42 +3,60 @@ import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import api from "@/app/api";
 import {Button} from "@/components/ui/button";
 import MapComponent from "@/app/components/map/MapComponent";
-const StreetViewComponent = () => {
+import { useGame} from "@/app/context/GameContext";
 
+const StreetViewComponent = () => {
 
     const streetViewLib = useMapsLibrary('streetView');
 
 
-    const guessNumberRef = useRef(1)
-    const [panoId, setPanoId] = useState<string>("");
+    const { startGame, panoId, submitGuess, guessCoords } = useGame();
     const streetViewRef = useRef<HTMLDivElement | null>(null);
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 
-
-
-
-    async function fetchPano() {
-        console.log("Calling getLocation");
-        if (!panoId) {
-            const response = await api.get("game/start-game");
-            console.log(response);
-            const newPano = response.data.pano_id;
-            console.log("Got pano:", newPano);
-            setPanoId(newPano);
+    const handleGuessSubmit = async () => {
+        if (!guessCoords) {
+            alert("Please make a guess on the map first!");
             return;
         }
 
-        const response = await api.get("game/next-round");
-        console.log(response);
-        const newPano = response.data;
-        console.log("Got pano:", newPano);
-        setPanoId(newPano);
-        guessNumberRef.current += 1;
-    }
+        try {
+            const results = await submitGuess(guessCoords);
+            if (results) {
+                // Handle successful guess submission
+                console.log("Guess results:", results);
+                // You might want to show results or navigate to results page
+            }
+        } catch (error) {
+            console.error("Error submitting guess:", error);
+        }
+    };
+
+
+    /*
+    // async function fetchPano() {
+    //     console.log("Calling getLocation");
+    //     if (!panoId) {
+    //         const response = await api.get("game/start-game");
+    //         console.log(response);
+    //         const newPano = response.data.pano_id;
+    //         console.log("Got pano:", newPano);
+    //         setPanoId(newPano);
+    //         return;
+    //     }
+    //
+    //     const response = await api.get("game/next-round");
+    //     console.log(response);
+    //     const newPano = response.data;
+    //     console.log("Got pano:", newPano);
+    //     setPanoId(newPano);
+    //     guessNumberRef.current += 1;
+    // }
+    */
 
     useEffect(() => {
 
-        fetchPano();
+      startGame();
     }, []);
 
 
@@ -78,7 +96,7 @@ const StreetViewComponent = () => {
                     <MapComponent />
                 </div>
                 <div className="mt-2">
-                    <Button className={'w-[300px]'} onClick={fetchPano}>Guess</Button>
+                    <Button className={'w-[300px]'} onClick={handleGuessSubmit}>Guess</Button>
                 </div>
             </div>
         </div>

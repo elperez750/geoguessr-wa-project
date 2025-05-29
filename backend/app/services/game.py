@@ -22,11 +22,13 @@ def create_new_game(user_id: int, db : Session = Depends(get_db)):
     return new_game
 
 
-def create_round(game_id: int, round_number: int, db: Session = Depends(get_db)):
+
+
+def create_round(game_id: int, round_number: int, location: str, db: Session = Depends(get_db)):
     new_round = Round(
         game_id = game_id,
         round_number = round_number,
-
+        location_string = location
     )
 
 

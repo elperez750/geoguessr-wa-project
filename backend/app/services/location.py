@@ -40,6 +40,14 @@ def get_random_pano_id(random_id: int, db: Session = Depends(get_db)):
         return {"error": "Location not found"}
     return location_pano_id
 
+def get_coords_from_pano_id(pano_id: int, db: Session = Depends(get_db)):
+    location_entry = db.query(Location).filter(Location.pano_id == pano_id).first()
+    lat = location_entry.latitude
+    lng = location_entry.longitude
+
+    coords = {"lat": lat, "lng": lng}
+    print(coords)
+    return coords
 
 
 

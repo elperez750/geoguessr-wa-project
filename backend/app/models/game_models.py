@@ -36,10 +36,12 @@ class Round(Base):
     round_number = Column(Integer)
     game_id = Column(Integer, ForeignKey('games.id'))
     area_name = Column(Text)
+    location_string = Column(Text)
     location_id = Column(Integer, ForeignKey('locations.id'))
     location = relationship('Location', back_populates='round')
     user_rounds = relationship('UserRound', back_populates='round')
     game = relationship('Game', back_populates='rounds')
+
 
 class UserRound(Base):
     __tablename__ = 'user_rounds'

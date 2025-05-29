@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
-from app.services import get_address_from_coordinates, get_random_pano_id, haversine_formula, create_new_game, redis_client,create_round, create_user_round
+from app.services import get_address_from_coordinates, get_random_pano_id, haversine_formula, create_new_game, redis_client,create_round, create_user_round, get_coords_from_pano_id
 from app.models import Location
 from app.db import get_db
 from app.services.authentication import get_user_from_cookie
@@ -13,7 +13,6 @@ router = APIRouter()
 
 class GameCreate(BaseModel):
     started_at: str
-
 
 
 class GameResponse(BaseModel):
@@ -61,10 +60,15 @@ class UserRoundCreate(BaseModel):
     #
 
 
+# Getting results after the round is over
+@router.get('/get-round-results')
+def get_results():
+    pass
+
 
 #getting location
 @router.get('/get-location')
-def get_location(lat:float = Query(...), lng: float = Query(...), guess_number: int = Query(...)):
+def get_location(lat:float = Query(...), lng: float = Query(...)):
    location = get_address_from_coordinates(lat, lng)
    if location:
         return location
@@ -91,21 +95,34 @@ def start_game(request: Request, db: Session = Depends(get_db)):
 
     pano_id = redis_client.get('pano_id')
     if not pano_id:
-        print("Accessing Redis since this already exists")
+        print("Getting new pano_id from database")
         pano_id = get_random_pano_id(random_id, db)
         redis_client.set('pano_id', pano_id)
+    else:
+        pano_id = pano_id.decode('utf-8')  # Decode bytes to string
+        print("Using cached pano_id from Redis")
 
+    print("pano id", pano_id)
 
+    coords = get_coords_from_pano_id(pano_id, db)
+    string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
 
     new_game = create_new_game(user['user_id'], db)
-    new_round = create_round(new_game.id,1,  db)
+    new_round = create_round(new_game.id, 1, string_location,  db)
 
     user_round = create_user_round(new_round.id, user['user_id'], db)
 
 
     round_number = redis_client.set("round_number", new_round.round_number)
 
-    return {"pano_id": pano_id, "game_id": new_game.id, "current_round": round_number}
+
+
+    return {"pano_id": pano_id,
+            "game_id": new_game.id,
+            "current_round": round_number,
+            "user_id": user["user_id"],
+            "round_id": new_round.id,
+            }
 
 
 @router.get('/next-round')

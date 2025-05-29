@@ -4,6 +4,7 @@ import "./globals.css";
 import {AuthProvider} from "@/app/context/AuthContext";
 import { Toaster } from "sonner";
 import Navbar from "@/app/components/Navbar";
+import {GameProvider} from "@/app/context/GameContext";
 const geistSans = Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"],
@@ -29,7 +30,11 @@ export default function RootLayout({
         <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 text-gray-900 min-h-screen`}
         >
+
         <AuthProvider>
+            <GameProvider>
+
+
             <Navbar />
 
         <Toaster richColors closeButton position="bottom-right" />
@@ -40,6 +45,8 @@ export default function RootLayout({
         <footer className="w-full p-4 text-center text-sm text-gray-500">
             © {new Date().getFullYear()} GeoGuessr WA. All rights reserved.
         </footer>
+            </GameProvider>
+
         </AuthProvider>
 
         </body>

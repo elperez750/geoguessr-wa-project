@@ -3,12 +3,13 @@
 import { Map, Marker, MapMouseEvent } from "@vis.gl/react-google-maps";
 import React, { useState } from "react"; // Added useRef import
 import { CoordinateType } from "@/app/types/mapTypes";
+import {useGame} from "@/app/context/GameContext";
 
 const MapComponent = () => {
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
     const [clickCoords, setClickCoords] = useState<CoordinateType | null>(null); // Fixed initialization
-
+    const {setGuessCoords} = useGame()
     // Fixed typing for the map parameter
 
 
@@ -18,6 +19,8 @@ const MapComponent = () => {
             const lat = latLng.lat;
             const lng = latLng.lng;
 
+
+            setGuessCoords({lat: lat, lng: lng})
             setClickCoords({ lat: lat, lng: lng });
         }
     }
@@ -49,6 +52,8 @@ const MapComponent = () => {
                     <p>Longitude: {clickCoords.lng.toFixed(4)}</p>
                 </div>
             )}
+
+
         </>
     );
 }
