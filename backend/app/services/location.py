@@ -85,7 +85,7 @@ def get_random_pano_id(random_id: int, db: Session = Depends(get_db)):
     return location_pano_id
 
 
-def get_coords_from_pano_id(pano_id: int, db: Session = Depends(get_db)):
+def get_coords_from_pano_id(pano_id: str, db: Session = Depends(get_db)):
     """
     Retrieve coordinates for a given panorama ID
 

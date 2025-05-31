@@ -9,6 +9,7 @@ Dependencies:
 - PostgreSQL: Stores persistent game data (games, rounds, user_rounds)
 - Google Maps API: For geocoding and street view data
 """
+import json
 
 from fastapi import APIRouter, Query, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -146,14 +147,11 @@ def start_game(request: Request, db: Session = Depends(get_db)):
 
     Flow:
     1. Check if user is authenticated
-    2. Get total location count (cached in Redis for performance)
-    3. Select random location ID
-    4. Get panorama ID (cached in Redis to avoid repeated DB queries)
+    2. We will get the game state from Redis. If not, we will create a new game session.
+    3. Create new game, round, and user_round records in database
+    4. Get pano ID
     5. Get coordinates and address for the selected location
-    6. Create new game record in database
-    7. Create first round record
-    8. Create user_round record to track user's participation
-    9. Return game data to frontend
+    6. Return game data to frontend
 
     Args:
         request (Request): HTTP request object (contains cookies)
@@ -166,68 +164,60 @@ def start_game(request: Request, db: Session = Depends(get_db)):
             - current_round: Round number (always 1 for new games)
             - user_id: ID of authenticated user
             - round_id: Database ID of created round
+            - number_of_locations: Total number of locations available
+            - total_score: Initial score for the user (0 for new games)
 
     Raises:
         HTTPException: 401 if user is not authenticated
 
     Redis Caching Strategy:
-        - 'number_of_locations': Total count of available locations
-        - 'pano_id': Current panorama ID to avoid DB queries
-        - 'round_number': Current round number for session management
+        - 'user:{user_id}:game_session' is set to game data JSON string'
     """
     # Authentication check
     user = get_user_from_cookie(request)
     if not user:
         raise HTTPException(status_code=401, detail="User is not logged in")
 
-    # Get location count with Redis caching for performance
-    # This avoids expensive COUNT queries on every game start
-    number_of_locations = redis_client.get('number_of_locations')
-    if not number_of_locations:
-        # Cache miss: query database and store in Redis
+
+    # We first check to see if the user has an existing game session. If so, we return the game data from Redis.
+    # If not, we create a new game session and return the game data.
+    session_key = f'user:{user["user_id"]}:game_session'
+    existing_session = redis_client.get(session_key)
+
+    if existing_session is None:
+        # Getting number of locations from database. This could easily be hardcoded
         number_of_locations = db.query(Location).count()
-        redis_client.set('number_of_locations', number_of_locations)
-    else:
-        # Cache hit: decode bytes to integer
-        number_of_locations = int(number_of_locations.decode('utf-8'))
 
-    # Select random location from available pool
-    random_id = random.randint(1, number_of_locations)
+        # Random id to get a random location
+        random_id = random.randint(1, number_of_locations)
 
-    # Get panorama ID with Redis caching
-    # This prevents repeated queries for the same location
-    pano_id = redis_client.get('pano_id')
-    if not pano_id:
-        print("Getting new pano_id from database")
+        # This is what displays the map on the frontend.
         pano_id = get_random_pano_id(random_id, db)
-        redis_client.set('pano_id', pano_id)
-    else:
-        # Redis returns bytes, convert to string
-        pano_id = pano_id.decode('utf-8')
-        print("Using cached pano_id from Redis")
 
-    print(f"Selected pano_id: {pano_id}")
+        coords = get_coords_from_pano_id(pano_id, db)
+        # This is what displays the address on the frontend.
+        string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
+        new_game = create_new_game(user['user_id'], db)  # Creates games table record
+        new_round = create_round(new_game.id, 1, string_location, db)  # Creates rounds table record
+        user_round = create_user_round(new_round.id, user['user_id'], db)  # Creates user_rounds table record
 
-    # Get location data for the selected panorama
-    coords = get_coords_from_pano_id(pano_id, db)
-    string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
 
-    # Create database records for game tracking
-    new_game = create_new_game(user['user_id'], db)  # Creates games table record
-    new_round = create_round(new_game.id, 1, string_location, db)  # Creates rounds table record
-    user_round = create_user_round(new_round.id, user['user_id'], db)  # Creates user_rounds table record
+        game_data = {
+            "game_id": new_game.id,
+            "round_id": new_round.id,
+            "user_id": user["user_id"],
+            "current_round": new_round.round_number,
+            "pano_id": pano_id,
+            "number_of_locations": number_of_locations,
+            "total_score": user_round.round_score,
+        }
 
-    # Cache round number for session management
-    redis_client.set("round_number", new_round.round_number)
+        game_data_json = json.dumps(game_data)
+        redis_client.set(session_key, game_data_json)
+        return game_data
 
-    # Return game initialization data to frontend
-    return {
-        "pano_id": pano_id,  # Street View panorama ID
-        "game_id": new_game.id,  # Game database ID
-        "current_round": new_round.round_number,  # Current round number
-        "user_id": user["user_id"],  # Authenticated user ID
-        "round_id": new_round.id,  # Round database ID
-    }
+
+    return json.loads(existing_session)
 
 
 @router.get('/next-round')
