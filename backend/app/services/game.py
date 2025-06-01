@@ -49,6 +49,12 @@ def create_new_game(user_id: int, db: Session = Depends(get_db)):
     return new_game
 
 
+def get_score(distance_km: float, max_score:int =5000, max_distance: int = 500) -> int:
+    score = max(0, max_score * (1 - distance_km / max_distance))
+    return round(score)
+
+
+
 def create_round(game_id: int, round_number: int, location: str, db: Session = Depends(get_db)):
     """
     Create a new round within a game session

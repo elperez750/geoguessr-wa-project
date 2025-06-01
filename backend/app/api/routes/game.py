@@ -14,6 +14,9 @@ import json
 from fastapi import APIRouter, Query, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
+
+from sqlalchemy.sql.functions import user
+
 from app.services import (
     get_address_from_coordinates,
     get_random_pano_id,
@@ -22,7 +25,8 @@ from app.services import (
     redis_client,
     create_round,
     create_user_round,
-    get_coords_from_pano_id
+    get_coords_from_pano_id,
+get_score
 )
 from app.models import Location
 from app.db import get_db
@@ -67,6 +71,9 @@ class UserRoundCreate(BaseModel):
     user_id: int
 
 
+class RoundResults(BaseModel):
+    pass
+
 # ============================================================================
 # DATABASE SCHEMA REFERENCE (for documentation)
 # ============================================================================
@@ -96,7 +103,7 @@ Round Table Structure:
 # ============================================================================
 
 @router.get('/get-round-results')
-def get_results():
+def get_results(request: Request, db: Session = Depends(get_db)):
     """
     Calculate and return results after a round is completed.
 
@@ -108,32 +115,48 @@ def get_results():
     5. Update user_round record with results
     6. Return results for frontend display
     """
-    pass
+
+    guess_lat = float(request.query_params.get('lat'))
+    guess_lng = float(request.query_params.get('lng'))
+
+    user = get_user_from_cookie(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="User is not logged in")
 
 
-@router.get('/get-location')
-def get_location(lat: float = Query(...), lng: float = Query(...)):
-    """
-    Convert latitude/longitude coordinates to a human-readable address.
+    game_data = json.loads(redis_client.get(f'user:{user["user_id"]}:game_session'))
+    if game_data is None:
+        raise HTTPException(status_code=404, detail="Game session not found")
 
-    Args:
-        lat (float): Latitude coordinate
-        lng (float): Longitude coordinate
+    guess_location_string = get_address_from_coordinates(guess_lat, guess_lng)
+    actual_location_string = game_data["current_string_location"]
+    round_lat = game_data["current_round_lat"]
+    round_lng = game_data["current_round_lng"]
 
-    Returns:
-        str: Formatted address string (e.g., "12312, 51st Street, Edmonds, WA")
-
-    Uses reverse geocoding to convert coordinates to street addresses.
-    Useful for displaying location names to users.
-    """
-    location = get_address_from_coordinates(lat, lng)
-    if location:
-        return location
-    else:
-        return "Nothing was found for the following coordinates"
+    distance_off = haversine_formula(guess_lat, guess_lng, round_lat, round_lng)
+    user_score = get_score(distance_off)
+    print(user_score)
 
 
-@router.get('/start-game')
+    # Score function will go here
+    return {
+        "round_lat": round_lat,
+        "round_lng": round_lng,
+        "user_guess_lat": guess_lat,
+        "user_guess_lng": guess_lng,
+        "distance_off": distance_off,
+        "guess_location_string": guess_location_string,
+        "actual_location_string": actual_location_string,
+        "round_score": user_score
+
+        # We will be returning the score here.
+    }
+
+    
+
+
+
+@router.post('/start-game')
 def start_game(request: Request, db: Session = Depends(get_db)):
     """
     Initialize a new game session for the authenticated user.
@@ -189,12 +212,15 @@ def start_game(request: Request, db: Session = Depends(get_db)):
         number_of_locations = db.query(Location).count()
 
         # Random id to get a random location
-        random_id = random.randint(1, number_of_locations)
 
         # This is what displays the map on the frontend.
-        pano_id = get_random_pano_id(random_id, db)
 
-        coords = get_coords_from_pano_id(pano_id, db)
+        round_pano_ids = [get_random_pano_id(random.randint(1, number_of_locations), db) for _ in range(5)]
+
+
+
+        print(round_pano_ids)
+        coords = get_coords_from_pano_id(round_pano_ids[0], db)
         # This is what displays the address on the frontend.
         string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
         new_game = create_new_game(user['user_id'], db)  # Creates games table record
@@ -204,10 +230,14 @@ def start_game(request: Request, db: Session = Depends(get_db)):
 
         game_data = {
             "game_id": new_game.id,
+            "current_round_lat": coords['lat'],
+            "current_round_lng": coords['lng'],
             "round_id": new_round.id,
             "user_id": user["user_id"],
             "current_round": new_round.round_number,
-            "pano_id": pano_id,
+            "current_string_location": string_location,
+            "current_pano_id": round_pano_ids[0],
+            "all_pano_ids": round_pano_ids,
             "number_of_locations": number_of_locations,
             "total_score": user_round.round_score,
         }
@@ -220,8 +250,8 @@ def start_game(request: Request, db: Session = Depends(get_db)):
     return json.loads(existing_session)
 
 
-@router.get('/next-round')
-def get_location_from_db(request: Request, db: Session = Depends(get_db)):
+@router.post('/next-round')
+def get_next_round(request: Request, db: Session = Depends(get_db)):
     """
     Advance to the next round of the current game.
 
@@ -235,9 +265,42 @@ def get_location_from_db(request: Request, db: Session = Depends(get_db)):
 
     Should increment round number and provide new pano_id.
     """
-    pass
 
 
+    user = get_user_from_cookie(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="User is not logged in")
+
+
+
+    session_key = f'user:{user["user_id"]}:game_session'
+    existing_session = redis_client.get(session_key)
+    if existing_session is None:
+        raise HTTPException(status_code=404, detail="Game session not found")
+
+
+
+    game_data = json.loads(existing_session)
+    current_round = game_data['current_round'] + 1
+    total_score = game_data['total_score'] + 10
+    pano_id = game_data['all_pano_ids'][current_round - 1]
+    coords = get_coords_from_pano_id(pano_id, db)
+
+
+    # This is what displays the address on the frontend.
+    string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
+
+    # Creating a new round and user stats for that specific round
+    new_round = create_round(game_data['game_id'], current_round,string_location, db)
+    user_round = create_user_round(new_round.id, user['user_id'], db)
+
+    game_data['current_round'] = current_round
+    game_data['current_pano_id'] = pano_id
+    game_data['total_score'] = total_score
+    game_data_json = json.dumps(game_data)
+    redis_client.set(session_key, game_data_json)
+
+    return game_data
 
 # ============================================================================
 # UTILITY FUNCTIONS USED (imported from app.services)

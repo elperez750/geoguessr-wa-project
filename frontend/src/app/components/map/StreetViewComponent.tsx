@@ -1,9 +1,9 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
-import api from "@/app/api";
 import {Button} from "@/components/ui/button";
-import MapComponent from "@/app/components/map/MapComponent";
+
 import { useGame} from "@/app/context/GameContext";
+import GuessMapComponent from "@/app/components/map/GuessMapComponent";
 
 const StreetViewComponent = () => {
 
@@ -93,7 +93,7 @@ const StreetViewComponent = () => {
             {/* MapComponent overlay in bottom-right corner */}
             <div className="absolute bottom-4 left-4 z-20 flex flex-col items-center">
                 <div className="w-[300px] h-[200px] rounded-lg overflow-hidden shadow-lg">
-                    <MapComponent />
+                    <GuessMapComponent />
                 </div>
                 <div className="mt-2">
                     <Button className={'w-[300px]'} onClick={handleGuessSubmit}>Guess</Button>

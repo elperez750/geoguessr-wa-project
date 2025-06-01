@@ -19,7 +19,7 @@ from app.services.location import get_address_from_coordinates, get_random_pano_
     get_coords_from_pano_id
 from app.services.authentication import hash_password, verify_password, create_access_token, verify_token, create_user, get_user_from_cookie
 from app.services.redis_client import redis_client
-from app.services.game import create_new_game, create_round, create_user_round
+from app.services.game import create_new_game, create_round, create_user_round, get_score
 
 # Export all service functions for easy imports elsewhere in the application
 __all__ = [
@@ -30,5 +30,5 @@ __all__ = [
     # Redis client
     "redis_client",
     # Game services
-    "create_new_game", "create_round", "create_user_round"
+    "create_new_game", "create_round", "create_user_round", "get_score"
 ]

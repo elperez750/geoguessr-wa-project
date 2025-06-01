@@ -104,11 +104,9 @@ def get_coords_from_pano_id(pano_id: str, db: Session = Depends(get_db)):
     lng = location_entry.longitude
 
     coords = {"lat": lat, "lng": lng}
-    print(coords)
     return coords
 
-
-def haversine_formula(lat1, lat2, lng1, lng2):
+def haversine_formula(lat1, lng1, lat2, lng2):
     """
     Calculate the great-circle distance between two points
 
@@ -134,6 +132,7 @@ def haversine_formula(lat1, lat2, lng1, lng2):
     lng1_radians = math.radians(lng1)
     lng2_radians = math.radians(lng2)
 
+
     # Calculate differences
     difference_in_lat = lat2_radians - lat1_radians
     difference_in_lng = lng2_radians - lng1_radians
@@ -145,6 +144,7 @@ def haversine_formula(lat1, lat2, lng1, lng2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     d = r * c
     return d
+
 
 
 def fetch_current_round_coordinates():

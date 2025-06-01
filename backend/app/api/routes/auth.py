@@ -18,7 +18,9 @@ Dependencies:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
-from app.services import create_access_token
+from sqlalchemy.sql.functions import user
+
+from app.services import create_access_token, redis_client
 from pydantic import BaseModel
 from app.db import get_db
 from sqlalchemy.orm import Session
@@ -128,6 +130,24 @@ async def login_user(request: UserLogin, response: Response, db: Session = Depen
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
 
+@router.post('/logout')
+def logout_user(request: Request, response: Response, db: Session = Depends(get_db)):
+    """
+    Logs out the user by deleting their authentication cookie.
+    
+    Args:
+        response (Response): The HTTP response object used to delete the cookie.
+    
+    Returns:
+        dict: A message confirming the user has been logged out.
+    """
+    # Assuming the cookie name is "auth" (replace with your actual cookie name)
+    user = get_user_from_cookie(request)
+    response.delete_cookie(key="access_token")
+    game_session_key = f'user:{user["user_id"]}:game_session'
+    redis_client.delete(game_session_key)
+    
+    return {"message": "You have been logged out successfully."}
 @router.get('/me')
 def get_user_details(request: Request):
     """
@@ -151,4 +171,3 @@ def get_user_details(request: Request):
         return current_user
     else:
         raise HTTPException(status_code=401, detail="Invalid token")
-

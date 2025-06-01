@@ -117,14 +117,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   // Logout function
-  const logout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
+  const logout = async() => {
+
+    try {
+      const response = await api.post("/auth/logout")
+      console.log(response)
+      setUser(null)
+      setIsAuthenticated(false)
+
+      toast.success("Logged Out", {
+        description: "You have been successfully logged out",
+        duration: 3000,
+      })
+
+    }
+    catch(e) {
+      console.error("Error logging out:", e)
+    }
     
-    toast.success("Logged Out", {
-      description: "You have been successfully logged out",
-      duration: 3000,
-    })
+
   }
 
   // Refresh user data
