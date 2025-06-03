@@ -5,6 +5,7 @@ import api from "@/app/api"
 import { toast } from "sonner"
 import { User } from "@/app/types/authTypes"
 import {useRouter} from "next/navigation";
+import { useGame} from "@/app/context/GameContext";
 // Define the User type
 
 
@@ -25,6 +26,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Create the AuthProvider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { resetGame } = useGame();
+
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -123,6 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await api.post("/auth/logout")
       console.log(response)
       setUser(null)
+      resetGame()
       setIsAuthenticated(false)
 
       toast.success("Logged Out", {

@@ -2,16 +2,12 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { useGame } from "@/app/context/GameContext";
 
 export const ScoreDisplay = () => {
-    const { roundScore, distance } = useGame(); // Assuming distance is also available in context
+    const { roundScore, roundDistanceOff } = useGame(); 
 
     // Calculate percentage out of max score (5000)
     const maxScore = 5000;
     const scorePercentage = Math.max(0, Math.min((roundScore / maxScore) * 100, 100));
 
-    // Calculate distance-based accuracy (how close to perfect distance)
-    // Perfect = 0km, Worst = 10,000km (based on your scoring formula)
-    const maxDistance = 10000; // km
-    const distanceAccuracy = Math.max(0, Math.round((1 - (distance || 0) / maxDistance) * 100));
 
     return (
         <Card className="w-full max-w-md mx-auto">
@@ -32,7 +28,7 @@ export const ScoreDisplay = () => {
                 {/* Progress Bar */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-700">Progress</span>
+                        <span className="text-sm font-medium text-gray-700">Accuracy</span>
                         <span className="text-sm text-gray-500">{scorePercentage.toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -50,16 +46,18 @@ export const ScoreDisplay = () => {
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                     <div>
                         <div className="text-lg font-semibold text-gray-800">
-                            {distanceAccuracy}%
+                            {scorePercentage}%
                         </div>
                         <div className="text-xs text-gray-500">
                             Distance Accuracy
                         </div>
                     </div>
-                    {distance !== undefined && (
+                    {roundDistanceOff  && (
                         <div>
                             <div className="text-lg font-semibold text-gray-800">
-                                {distance.toFixed(1)} km
+                                {roundDistanceOff.toFixed(1)} km
+                                
+                            ({(roundDistanceOff * 0.621371).toFixed(1)} mi)
                             </div>
                             <div className="text-xs text-gray-500">
                                 Distance Away

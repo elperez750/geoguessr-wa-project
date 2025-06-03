@@ -9,7 +9,6 @@ import {APIProvider} from "@vis.gl/react-google-maps";
 interface ResultMapComponentProps {
     actualLocation: CoordinateType;
     guessLocation: CoordinateType;
-    distance: number;
 }
 
 const Polyline = ({ path, options }: {

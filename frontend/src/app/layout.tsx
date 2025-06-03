@@ -31,8 +31,9 @@ export default function RootLayout({
             className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 text-gray-900 min-h-screen`}
         >
 
+        <GameProvider>
         <AuthProvider>
-            <GameProvider>
+
 
 
             <Navbar />
@@ -45,9 +46,10 @@ export default function RootLayout({
         <footer className="w-full p-4 text-center text-sm text-gray-500">
             © {new Date().getFullYear()} GeoGuessr WA. All rights reserved.
         </footer>
-            </GameProvider>
+
 
         </AuthProvider>
+        </GameProvider>
 
         </body>
         </html>

@@ -21,8 +21,10 @@ from app.db import get_db
 from app.models import Game, Round, UserRound
 from sqlalchemy.orm import Session
 from fastapi import Depends
+from sqlalchemy import func
 
 
+# All game table related functions
 def create_new_game(user_id: int, db: Session = Depends(get_db)):
     """
     Create a new game session for a user
@@ -48,6 +50,18 @@ def create_new_game(user_id: int, db: Session = Depends(get_db)):
 
     return new_game
 
+def update_game(user_id: int, total_score: int, total_distance: float, db: Session = Depends(get_db)):
+    game = db.query(Game).filter(Game.user_id == user_id).first()
+    if game:
+        game.completed_at = datetime.now()
+        game.total_score = total_score
+        game.total_distance = total_distance
+        db.commit()
+        return game
+    else:
+        raise ValueError("game not found")
+
+
 
 def get_score(distance_km: float, max_score:int =5000, max_distance: int = 500) -> int:
     score = max(0, max_score * (1 - distance_km / max_distance))
@@ -55,6 +69,7 @@ def get_score(distance_km: float, max_score:int =5000, max_distance: int = 500) 
 
 
 
+# All round table related functions
 def create_round(game_id: int, round_number: int, location: str, db: Session = Depends(get_db)):
     """
     Create a new round within a game session
@@ -83,6 +98,8 @@ def create_round(game_id: int, round_number: int, location: str, db: Session = D
     return new_round
 
 
+
+# All user_round table related functions
 def create_user_round(round_id: int, user_id: int, db: Session = Depends(get_db)):
     """
     Create a user's participation record for a round
@@ -101,9 +118,42 @@ def create_user_round(round_id: int, user_id: int, db: Session = Depends(get_db)
     new_user_round = UserRound(
         round_id = round_id,
         user_id = user_id,
+        round_score = 0,
     )
 
     db.add(new_user_round)
     db.commit()
     db.refresh(new_user_round)
     return new_user_round
+
+
+
+def update_user_round(round_id, guess_lat: float, guess_lng: float, distance_off: float, round_score: float, db: Session = Depends(get_db)):
+    game_round = db.query(UserRound).filter(UserRound.round_id == round_id).first()
+    print("game_round", game_round)
+    if game_round:
+        game_round.guess_lat = guess_lat
+        game_round.guess_lng = guess_lng
+        game_round.distance_off = distance_off
+        game_round.round_score = round_score
+    else:
+        raise ValueError("game round not found")
+    db.commit()
+    return game_round
+
+
+
+def get_total_score(user_id: int, db: Session = Depends(get_db)):
+    total_score = db.query(func.sum(UserRound.round_score)).filter(
+        UserRound.user_id == user_id
+    ).scalar_subquery()
+
+    return total_score
+
+
+def get_total_distance_off(user_id: int, db: Session = Depends(get_db)):
+    total_distance_off = db.query(func.sum(UserRound.distance_off)).filter(
+        UserRound.user_id == user_id
+    ).scalar_subquery()
+
+    return total_distance_off

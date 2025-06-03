@@ -10,7 +10,7 @@ const StreetViewComponent = () => {
     const streetViewLib = useMapsLibrary('streetView');
 
 
-    const { startGame, panoId, submitGuess, guessCoords } = useGame();
+    const { startGame, panoId, submitGuess, guessCoords, roundNumber, gameStatus, gameInitialized } = useGame();
     const streetViewRef = useRef<HTMLDivElement | null>(null);
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 
@@ -55,9 +55,13 @@ const StreetViewComponent = () => {
     */
 
     useEffect(() => {
-
-      startGame();
-    }, []);
+        if (!gameInitialized && gameStatus === "idle") {
+            console.log("Starting new game...");
+            startGame();
+        } else {
+            console.log("Game already initialized, skipping startGame");
+        }
+    }, [gameInitialized, gameStatus, startGame]);
 
 
     useEffect(() => {
@@ -87,6 +91,11 @@ const StreetViewComponent = () => {
 
     return (
         <div className="relative w-screen h-[90vh]">
+            {/* Round number display at the top */}
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-black text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg border-2 border-white">
+                Round {roundNumber || 1}
+            </div>
+
             {/* Street View container */}
             <div ref={streetViewRef} className="w-full h-full rounded-lg" />
 
@@ -96,7 +105,7 @@ const StreetViewComponent = () => {
                     <GuessMapComponent />
                 </div>
                 <div className="mt-2">
-                    <Button className={'w-[300px]'} onClick={handleGuessSubmit}>Guess</Button>
+                    <Button className={'w-[300px] cursor-pointer'} onClick={handleGuessSubmit}>Guess</Button>
                 </div>
             </div>
         </div>

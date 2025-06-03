@@ -5,6 +5,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useRouter} from "next/navigation";
 import {useEffect} from "react";
 
+
 export default function PlayPage() {
     const { isAuthenticated, isLoading } = useAuth();
 
@@ -12,6 +13,7 @@ export default function PlayPage() {
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
             router.push("/authentication");
+            
         }
     }, [isAuthenticated, isLoading, router]);
 

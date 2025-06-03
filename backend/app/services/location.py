@@ -56,12 +56,11 @@ def get_address_from_coordinates(lat: float, lng: float):
     Returns:
         str: Formatted address string, or None if geocoding fails
     """
-    print(lat, lng)
-    location = geolocator.geocode(f"{lat},{lng}")
-    if location:
-        address = location.address
-        return address
-    else:
+    try:
+        location = geolocator.geocode(f"{lat},{lng}", exactly_one=True)
+        print(location)
+        return location.address if location else None
+    except Exception:
         return None
 
 
@@ -99,12 +98,13 @@ def get_coords_from_pano_id(pano_id: str, db: Session = Depends(get_db)):
     Returns:
         dict: Dictionary containing 'lat' and 'lng' keys with coordinate values
     """
-    location_entry = db.query(Location).filter(Location.pano_id == pano_id).first()
-    lat = location_entry.latitude
-    lng = location_entry.longitude
+    lat = db.query(Location.latitude).filter(Location.pano_id == pano_id).scalar()
+    lng = db.query(Location.longitude).filter(Location.pano_id == pano_id).scalar()
+    
+    if lat is None or lng is None:
+        raise ValueError("Location not found")
 
-    coords = {"lat": lat, "lng": lng}
-    return coords
+    return {"lat": float(lat), "lng": float(lng)}
 
 def haversine_formula(lat1, lng1, lat2, lng2):
     """
@@ -147,13 +147,3 @@ def haversine_formula(lat1, lng1, lat2, lng2):
 
 
 
-def fetch_current_round_coordinates():
-    """
-    Retrieve coordinates for the current round from cache or database
-
-    TODO: Implement this function to:
-    1. Get the current round information from Redis or session
-    2. Query the database for the location coordinates
-    3. Return the coordinates for scoring
-    """
-    pass

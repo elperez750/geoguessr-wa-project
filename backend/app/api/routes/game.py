@@ -26,7 +26,11 @@ from app.services import (
     create_round,
     create_user_round,
     get_coords_from_pano_id,
-get_score
+    get_score,
+    update_user_round,
+    get_total_score,
+    get_total_distance_off,
+    update_game,
 )
 from app.models import Location
 from app.db import get_db
@@ -72,7 +76,22 @@ class UserRoundCreate(BaseModel):
 
 
 class RoundResults(BaseModel):
-    pass
+    success: bool
+    round_lat: float
+    round_lng: float
+    user_guess_lat: float
+    user_guess_lng: float
+    distance_off: float
+    guess_location_string: str
+    actual_location_string: str
+    round_score: float
+    total_score: float
+    total_distance: float
+
+
+
+
+
 
 # ============================================================================
 # DATABASE SCHEMA REFERENCE (for documentation)
@@ -102,62 +121,137 @@ Round Table Structure:
 # GAME ROUTES
 # ============================================================================
 
-@router.get('/get-round-results')
-def get_results(request: Request, db: Session = Depends(get_db)):
-    """
-    Calculate and return results after a round is completed.
 
-    TODO: Implement this endpoint to:
-    1. Accept user's guess coordinates
-    2. Compare with actual location coordinates
-    3. Calculate distance using haversine formula
-    4. Calculate score based on accuracy
-    5. Update user_round record with results
-    6. Return results for frontend display
-    """
+@router.get('/get-game-results')
+def get_game_stats(request: Request, db: Session = Depends(get_db)):
 
-    guess_lat = float(request.query_params.get('lat'))
-    guess_lng = float(request.query_params.get('lng'))
+    # We wi
 
     user = get_user_from_cookie(request)
     if not user:
         raise HTTPException(status_code=401, detail="User is not logged in")
 
 
-    game_data = json.loads(redis_client.get(f'user:{user["user_id"]}:game_session'))
-    if game_data is None:
+    total_score = get_total_score(user['user_id'], db)
+    total_distance_off = get_total_distance_off(user['user_id'], db)
+
+    game_stats = update_game(user['user_id'], total_score, total_distance_off, db)
+    return game_stats
+
+
+
+
+
+@router.get('/get-round-results', response_model=RoundResults)
+def get_round_results(request: Request, db: Session = Depends(get_db)):
+    """
+    Calculate and return results after a round is completed.
+    """
+    try:
+        # Input validation
+        lat = request.query_params.get('lat')
+        lng = request.query_params.get('lng')
+        if not lat or not lng:
+            raise HTTPException(status_code=400, detail="Missing coordinates")
+
+        # Convert coordinates with error handling
+        try:
+            guess_lat = float(lat)
+            guess_lng = float(lng)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid coordinate format")
+
+        # Validate coordinate ranges
+        if not (-90 <= guess_lat <= 90) or not (-180 <= guess_lng <= 180):
+            raise HTTPException(status_code=400, detail="Coordinates out of valid range")
+
+        # User authentication
+        user = get_user_from_cookie(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="User is not logged in")
+
+        # Get game session from Redis
+        redis_response = redis_client.get(f'user:{user["user_id"]}:game_session')
+        if not redis_response:
+            raise HTTPException(status_code=404, detail="Game session not found")
+
+        try:
+            game_data = json.loads(redis_response)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=500, detail="Invalid game session data")
+
+        # Extract game data with defaults
+        actual_location_string = game_data.get("current_string_location", "Unknown location")
+        round_lat = game_data.get("current_round_lat")
+        round_lng = game_data.get("current_round_lng")
+
+        print(f'Current round lat {round_lat}')
+        print(f'Current round lng {round_lng}')
+
+        if round_lat is None or round_lng is None:
+            raise HTTPException(status_code=400, detail="Round coordinates not found")
+
+        # Calculate results
+        guess_location_string = get_address_from_coordinates(guess_lat, guess_lng)
+        distance_off = haversine_formula(guess_lat, guess_lng, round_lat, round_lng)
+        user_score = get_score(distance_off)
+
+        # Update database
+        user_id = user["user_id"]
+        round_id = game_data["round_id"]
+        updated_user_stats = update_user_round(round_id, guess_lat, guess_lng, distance_off, user_score, db)
+
+        if not updated_user_stats:
+            raise HTTPException(status_code=500, detail="Failed to update user round data")
+
+        # Update Redis session
+        game_data["total_score"] = game_data.get("total_score", 0) + user_score
+        game_data["total_distance"] = game_data.get("total_distance", 0) + distance_off
+        game_data["current_round"] = game_data.get("current_round", 0) + 1
+
+        # Optional: Track round completion
+        game_data["rounds_completed"] = game_data.get("rounds_completed", 0) + 1
+
+        game_data_json = json.dumps(game_data)
+        redis_client.set(f'user:{user["user_id"]}:game_session', game_data_json)
+
+        return {
+            "success": True,
+            "round_lat": round_lat,
+            "round_lng": round_lng,
+            "user_guess_lat": guess_lat,
+            "user_guess_lng": guess_lng,
+            "distance_off": round(distance_off, 2),  # Round for cleaner display
+            "guess_location_string": guess_location_string,
+            "actual_location_string": actual_location_string,
+            "round_score": user_score,
+            "total_score": game_data["total_score"],
+            "total_distance": round(game_data["total_distance"], 2)
+        }
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log unexpected errors
+        print(f"Unexpected error in get_results: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post('/reset-game')
+async def reset_game(request: Request, db: Session = Depends(get_db)):
+    user = get_user_from_cookie(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="User is not logged in")
+
+    session_key = f'user:{user["user_id"]}:game_session'
+    if not session_key:
         raise HTTPException(status_code=404, detail="Game session not found")
 
-    guess_location_string = get_address_from_coordinates(guess_lat, guess_lng)
-    actual_location_string = game_data["current_string_location"]
-    round_lat = game_data["current_round_lat"]
-    round_lng = game_data["current_round_lng"]
-
-    distance_off = haversine_formula(guess_lat, guess_lng, round_lat, round_lng)
-    user_score = get_score(distance_off)
-    print(user_score)
-
-
-    # Score function will go here
-    return {
-        "round_lat": round_lat,
-        "round_lng": round_lng,
-        "user_guess_lat": guess_lat,
-        "user_guess_lng": guess_lng,
-        "distance_off": distance_off,
-        "guess_location_string": guess_location_string,
-        "actual_location_string": actual_location_string,
-        "round_score": user_score
-
-        # We will be returning the score here.
-    }
-
-    
-
-
+    redis_client.delete(session_key)
+    return {"success": True}
 
 @router.post('/start-game')
-def start_game(request: Request, db: Session = Depends(get_db)):
+async def start_game(request: Request, db: Session = Depends(get_db)):
     """
     Initialize a new game session for the authenticated user.
 
@@ -205,9 +299,9 @@ def start_game(request: Request, db: Session = Depends(get_db)):
     # We first check to see if the user has an existing game session. If so, we return the game data from Redis.
     # If not, we create a new game session and return the game data.
     session_key = f'user:{user["user_id"]}:game_session'
-    existing_session = redis_client.get(session_key)
+    redis_response = redis_client.get(session_key)
 
-    if existing_session is None:
+    if redis_response is None:
         # Getting number of locations from database. This could easily be hardcoded
         number_of_locations = db.query(Location).count()
 
@@ -220,9 +314,10 @@ def start_game(request: Request, db: Session = Depends(get_db)):
 
 
         print(round_pano_ids)
-        coords = get_coords_from_pano_id(round_pano_ids[0], db)
+        coords = get_coords_from_pano_id(str(round_pano_ids[0]), db)
+        print(coords)
         # This is what displays the address on the frontend.
-        string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
+        string_location = get_location_string(float(coords['lat']),float(coords['lng']))
         new_game = create_new_game(user['user_id'], db)  # Creates games table record
         new_round = create_round(new_game.id, 1, string_location, db)  # Creates rounds table record
         user_round = create_user_round(new_round.id, user['user_id'], db)  # Creates user_rounds table record
@@ -244,14 +339,15 @@ def start_game(request: Request, db: Session = Depends(get_db)):
 
         game_data_json = json.dumps(game_data)
         redis_client.set(session_key, game_data_json)
-        return game_data
+        redis_response = redis_client.get(session_key)
+        return json.loads(redis_response)
 
 
-    return json.loads(existing_session)
+    return json.loads(redis_response)
 
 
 @router.post('/next-round')
-def get_next_round(request: Request, db: Session = Depends(get_db)):
+async def get_next_round(request: Request, db: Session = Depends(get_db)):
     """
     Advance to the next round of the current game.
 
@@ -274,33 +370,39 @@ def get_next_round(request: Request, db: Session = Depends(get_db)):
 
 
     session_key = f'user:{user["user_id"]}:game_session'
-    existing_session = redis_client.get(session_key)
-    if existing_session is None:
+    redis_response = redis_client.get(session_key)
+
+
+    if redis_response is None:
         raise HTTPException(status_code=404, detail="Game session not found")
 
 
 
-    game_data = json.loads(existing_session)
-    current_round = game_data['current_round'] + 1
-    total_score = game_data['total_score'] + 10
+    game_data = json.loads(redis_response)
+    current_round = game_data['current_round']
     pano_id = game_data['all_pano_ids'][current_round - 1]
-    coords = get_coords_from_pano_id(pano_id, db)
+    print(game_data)
+    coords = get_coords_from_pano_id(str(pano_id), db)
 
 
     # This is what displays the address on the frontend.
-    string_location = get_address_from_coordinates(coords['lat'], coords['lng'])
+    string_location = get_location_string(float(coords['lat']), float(coords['lng']))
 
     # Creating a new round and user stats for that specific round
-    new_round = create_round(game_data['game_id'], current_round,string_location, db)
+    new_round = create_round(game_data['game_id'], current_round, string_location, db)
     user_round = create_user_round(new_round.id, user['user_id'], db)
 
-    game_data['current_round'] = current_round
+    game_data['round_id'] = new_round.id
+    game_data['current_round_lat'] = coords['lat']
+    game_data['current_round_lng'] = coords['lng']
+    game_data['current_string_location'] = string_location
     game_data['current_pano_id'] = pano_id
-    game_data['total_score'] = total_score
     game_data_json = json.dumps(game_data)
     redis_client.set(session_key, game_data_json)
 
-    return game_data
+    redis_response = redis_client.get(session_key)
+    print(json.loads(redis_response))
+    return json.loads(redis_response)
 
 # ============================================================================
 # UTILITY FUNCTIONS USED (imported from app.services)
@@ -343,3 +445,7 @@ get_user_from_cookie(request):
     - Validates user authentication from HTTP cookies
     - Returns user data dict if valid, None if invalid
 """
+
+def get_location_string(lat: float, lng: float) -> str:
+    result = get_address_from_coordinates(lat, lng)
+    return result or "Unknown location"
