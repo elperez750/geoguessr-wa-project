@@ -63,6 +63,17 @@ def update_game(user_id: int, total_score: int, total_distance: float, db: Sessi
 
 
 
+def get_game_results(user_id: int, game_id, db: Session = Depends(get_db)):
+    total_score = get_total_score(user_id, db)
+    total_distance_off = get_total_distance_off(user_id, db)
+    rounds = db.query(Round).filter(Round.game_id == game_id).all()
+    round_ids = [round_object.id for round_object in rounds]
+    user_round_stats = db.query(UserRound).filter(UserRound.round_id.in_(round_ids)).all()
+
+
+
+
+
 def get_score(distance_km: float, max_score:int =5000, max_distance: int = 500) -> int:
     score = max(0, max_score * (1 - distance_km / max_distance))
     return round(score)
@@ -128,12 +139,13 @@ def create_user_round(round_id: int, user_id: int, db: Session = Depends(get_db)
 
 
 
-def update_user_round(round_id, guess_lat: float, guess_lng: float, distance_off: float, round_score: float, db: Session = Depends(get_db)):
+def update_user_round(round_id, guess_location_string: str,  guess_lat: float, guess_lng: float, distance_off: float, round_score: float, db: Session = Depends(get_db)):
     game_round = db.query(UserRound).filter(UserRound.round_id == round_id).first()
     print("game_round", game_round)
     if game_round:
         game_round.guess_lat = guess_lat
         game_round.guess_lng = guess_lng
+        game_round.guess_location_string = guess_location_string
         game_round.distance_off = distance_off
         game_round.round_score = round_score
     else:

@@ -17,6 +17,7 @@ Dependencies:
 - Environment variables: For API keys and database configuration
 """
 
+from sqlalchemy import func
 import math
 from geopy.geocoders import Nominatim
 from dotenv import load_dotenv
@@ -78,10 +79,26 @@ def get_random_pano_id(random_id: int, db: Session = Depends(get_db)):
     Returns:
         str: Panorama ID string, or error dict if not found
     """
-    location_pano_id = db.query(Location.pano_id).filter(Location.id == random_id).scalar()
-    if not location_pano_id:
-        return {"error": "Location not found"}
-    return location_pano_id
+
+    while True:
+        # Get a random location that has a pano_id
+        location = db.query(Location).filter(
+            Location.pano_id.isnot(None),
+            Location.pano_id != ''
+        ).order_by(func.random()).first()
+
+        if location and location.pano_id:
+            return location.pano_id
+
+        # If no locations found at all, break to avoid infinite loop
+
+        total_locations = db.query(Location).filter(
+            Location.pano_id.isnot(None),
+            Location.pano_id != ''
+        ).count()
+
+        if total_locations == 0:
+            return {"error": "No valid locations found"}
 
 
 def get_coords_from_pano_id(pano_id: str, db: Session = Depends(get_db)):

@@ -111,7 +111,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             const response = await api.post('game/start-game')
             const data = response.data
             console.log(data)
-            setPanoId(data.current_pano_id)
+            setPanoId(data.all_pano_ids[0])
             setGameId(data.game_id)
             setUserId(data.user_id)
             setRoundId(data.round_id)
@@ -119,7 +119,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setTotalRounds(data.total_rounds || 5)
             setGameStatus("active")
             setGameInitialized(true)
-            setActualLocation(data.current_string_location)
+            setRoundCoordinates({lat: data.game_lats[0], lng: data.game_lngs[0]})
+            setActualLocation(data.all_actual_string_locations[0])
 
 
             toast.success("Game started!")
@@ -163,9 +164,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
             setRoundDistanceOff(gameResults.distance_off)
             setGuessCoords(guessCoords)
-            setRoundCoordinates({lat: gameResults.round_lat, lng: gameResults.round_lng})
             setGuessLocation(gameResults.guess_location_string)
-            setActualLocation(gameResults.actual_location_string)
             setRoundScore(gameResults.round_score)
 
 
@@ -200,20 +199,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             const response = await api.post(`game/next-round`)
             const data = response.data
             console.log(data)
+            const curr = data.current_round - 1
 
-            setPanoId(data.current_pano_id)
+            setPanoId(data.all_pano_ids[curr])
             setRoundId(data.round_id)
             setRoundNumber(data.current_round)
             setRoundScore(0)
+            setRoundCoordinates({lat: data.game_lats[curr], lng: data.game_lngs[curr]})
+            setActualLocation(data.all_actual_string_locations[curr])
 
 
-            setGuessCoords(null)
-            setRoundDistanceOff(null)
-            setActualLocation(null)
-            setGuessLocation(null)
-            setRoundCoordinates(null)
+
 
             router.push('/play')
+
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
                 toast.error(error.response?.data?.detail || "Failed to start game")
@@ -235,7 +234,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             console.log(response)
             setTotalScore(data.total_score)
 
-            router.push('/results')
+            router.push('/game-results')
 
         }
         catch (error: unknown) {

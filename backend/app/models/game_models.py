@@ -42,7 +42,6 @@ class Location(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     pano_id = Column(Text, unique=True, nullable=False)
-    round = relationship("Round", back_populates="location", uselist=False)
 
 
 class Game(Base):
@@ -89,7 +88,6 @@ class Round(Base):
         id (int): Primary key, round identifier
         round_number (int): Sequence number of this round (1-5 typically)
         game_id (int): Foreign key to the parent game
-        area_name (str): Human-readable area name
         location_string (str): Full address string from geocoding
         location_id (int): Foreign key to the location used for this round
 
@@ -103,10 +101,7 @@ class Round(Base):
     id = Column(Integer, primary_key=True)
     round_number = Column(Integer)
     game_id = Column(Integer, ForeignKey('games.id'))
-    area_name = Column(Text)
     location_string = Column(Text)
-    location_id = Column(Integer, ForeignKey('locations.id'))
-    location = relationship('Location', back_populates='round')
     user_rounds = relationship('UserRound', back_populates='round')
     game = relationship('Game', back_populates='rounds')
 

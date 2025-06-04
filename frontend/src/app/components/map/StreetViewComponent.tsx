@@ -33,26 +33,6 @@ const StreetViewComponent = () => {
     };
 
 
-    /*
-    // async function fetchPano() {
-    //     console.log("Calling getLocation");
-    //     if (!panoId) {
-    //         const response = await api.get("game/start-game");
-    //         console.log(response);
-    //         const newPano = response.data.pano_id;
-    //         console.log("Got pano:", newPano);
-    //         setPanoId(newPano);
-    //         return;
-    //     }
-    //
-    //     const response = await api.get("game/next-round");
-    //     console.log(response);
-    //     const newPano = response.data;
-    //     console.log("Got pano:", newPano);
-    //     setPanoId(newPano);
-    //     guessNumberRef.current += 1;
-    // }
-    */
 
     useEffect(() => {
         if (!gameInitialized && gameStatus === "idle") {

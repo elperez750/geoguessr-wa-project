@@ -131,9 +131,16 @@ def get_game_stats(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="User is not logged in")
 
+    redis_response = redis_client.get(f'user:{user["user_id"]}:game_session')
+    if not redis_response:
+        raise HTTPException(status_code=401, detail="User is not logged in")
+
+    game_data = json.loads(redis_response)
+
 
     total_score = get_total_score(user['user_id'], db)
     total_distance_off = get_total_distance_off(user['user_id'], db)
+
 
     game_stats = update_game(user['user_id'], total_score, total_distance_off, db)
     return game_stats
@@ -182,8 +189,8 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
 
         # Extract game data with defaults
         actual_location_string = game_data.get("current_string_location", "Unknown location")
-        round_lat = game_data.get("current_round_lat")
-        round_lng = game_data.get("current_round_lng")
+        round_lat = game_data.get("game_lats")[game_data.get("current_round") - 1]
+        round_lng = game_data.get("game_lngs")[game_data.get("current_round") - 1]
 
         print(f'Current round lat {round_lat}')
         print(f'Current round lng {round_lng}')
@@ -199,7 +206,7 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
         # Update database
         user_id = user["user_id"]
         round_id = game_data["round_id"]
-        updated_user_stats = update_user_round(round_id, guess_lat, guess_lng, distance_off, user_score, db)
+        updated_user_stats = update_user_round(round_id, guess_location_string, guess_lat, guess_lng, distance_off, user_score, db)
 
         if not updated_user_stats:
             raise HTTPException(status_code=500, detail="Failed to update user round data")
@@ -208,6 +215,8 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
         game_data["total_score"] = game_data.get("total_score", 0) + user_score
         game_data["total_distance"] = game_data.get("total_distance", 0) + distance_off
         game_data["current_round"] = game_data.get("current_round", 0) + 1
+
+
 
         # Optional: Track round completion
         game_data["rounds_completed"] = game_data.get("rounds_completed", 0) + 1
@@ -221,7 +230,7 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
             "round_lng": round_lng,
             "user_guess_lat": guess_lat,
             "user_guess_lng": guess_lng,
-            "distance_off": round(distance_off, 2),  # Round for cleaner display
+            "distance_off": round(distance_off, 2),
             "guess_location_string": guess_location_string,
             "actual_location_string": actual_location_string,
             "round_score": user_score,
@@ -305,19 +314,26 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
         # Getting number of locations from database. This could easily be hardcoded
         number_of_locations = db.query(Location).count()
 
-        # Random id to get a random location
 
-        # This is what displays the map on the frontend.
+        # We will get 5 different pano ids
 
         round_pano_ids = [get_random_pano_id(random.randint(1, number_of_locations), db) for _ in range(5)]
 
 
+        # We will get the corresponding coordinates and string location for the pano ids generated
+        all_lats = []
+        all_lngs = []
+        all_actual_string_locations = []
+        for pano_id in round_pano_ids:
+            coords = get_coords_from_pano_id(str(pano_id), db)
+            all_lats.append(coords['lat'])
+            all_lngs.append(coords['lng'])
+            all_actual_string_locations.append(get_address_from_coordinates(coords['lat'], coords['lng']))
 
-        print(round_pano_ids)
-        coords = get_coords_from_pano_id(str(round_pano_ids[0]), db)
-        print(coords)
-        # This is what displays the address on the frontend.
-        string_location = get_location_string(float(coords['lat']),float(coords['lng']))
+
+
+
+        string_location = all_actual_string_locations[0]
         new_game = create_new_game(user['user_id'], db)  # Creates games table record
         new_round = create_round(new_game.id, 1, string_location, db)  # Creates rounds table record
         user_round = create_user_round(new_round.id, user['user_id'], db)  # Creates user_rounds table record
@@ -325,16 +341,17 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
 
         game_data = {
             "game_id": new_game.id,
-            "current_round_lat": coords['lat'],
-            "current_round_lng": coords['lng'],
+            "game_lats": all_lats,
+            "game_lngs": all_lngs,
             "round_id": new_round.id,
             "user_id": user["user_id"],
             "current_round": new_round.round_number,
             "current_string_location": string_location,
-            "current_pano_id": round_pano_ids[0],
             "all_pano_ids": round_pano_ids,
             "number_of_locations": number_of_locations,
             "total_score": user_round.round_score,
+            "all_actual_string_locations": all_actual_string_locations,
+
         }
 
         game_data_json = json.dumps(game_data)
@@ -381,21 +398,16 @@ async def get_next_round(request: Request, db: Session = Depends(get_db)):
     game_data = json.loads(redis_response)
     current_round = game_data['current_round']
     pano_id = game_data['all_pano_ids'][current_round - 1]
-    print(game_data)
-    coords = get_coords_from_pano_id(str(pano_id), db)
 
 
     # This is what displays the address on the frontend.
-    string_location = get_location_string(float(coords['lat']), float(coords['lng']))
+    string_location = get_location_string(float(game_data['game_lats'][current_round - 1]), float(game_data['game_lngs'][current_round - 1]))
 
     # Creating a new round and user stats for that specific round
     new_round = create_round(game_data['game_id'], current_round, string_location, db)
     user_round = create_user_round(new_round.id, user['user_id'], db)
 
     game_data['round_id'] = new_round.id
-    game_data['current_round_lat'] = coords['lat']
-    game_data['current_round_lng'] = coords['lng']
-    game_data['current_string_location'] = string_location
     game_data['current_pano_id'] = pano_id
     game_data_json = json.dumps(game_data)
     redis_client.set(session_key, game_data_json)
