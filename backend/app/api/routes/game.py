@@ -31,6 +31,7 @@ from app.services import (
     get_total_score,
     get_total_distance_off,
     update_game,
+    limiter
 )
 from app.models import Location
 from app.db import get_db
@@ -39,7 +40,13 @@ from sqlalchemy.orm import Session
 import random
 from datetime import datetime
 
+
+
+
+
+
 router = APIRouter()
+
 
 
 # ============================================================================
@@ -125,7 +132,6 @@ Round Table Structure:
 @router.get('/get-game-results')
 def get_game_stats(request: Request, db: Session = Depends(get_db)):
 
-    # We wi
 
     user = get_user_from_cookie(request)
     if not user:
@@ -137,18 +143,27 @@ def get_game_stats(request: Request, db: Session = Depends(get_db)):
 
     game_data = json.loads(redis_response)
 
+    game_id = game_data['game_id']
 
-    total_score = get_total_score(user['user_id'], db)
-    total_distance_off = get_total_distance_off(user['user_id'], db)
+    total_score = get_total_score(game_id, db)
+    total_distance_off = get_total_distance_off(game_id, db)
 
 
     game_stats = update_game(user['user_id'], total_score, total_distance_off, db)
+
+
+
+    game_stats["all_locations"] = game_data["all_actual_string_locations"]
+    game_stats["all_scores"] = game_data["all_round_scores"]
+    game_stats["all_distances"] = game_data["all_round_distances"]
+    print(f"here are the game stats {game_stats}")
     return game_stats
 
 
 
 
 
+@limiter.limit("1/2seconds")
 @router.get('/get-round-results', response_model=RoundResults)
 def get_round_results(request: Request, db: Session = Depends(get_db)):
     """
@@ -178,6 +193,7 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=401, detail="User is not logged in")
 
         # Get game session from Redis
+        lock_key = f'user:{user["user_id"]}:guess_lock'
         redis_response = redis_client.get(f'user:{user["user_id"]}:game_session')
         if not redis_response:
             raise HTTPException(status_code=404, detail="Game session not found")
@@ -202,7 +218,8 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
         guess_location_string = get_address_from_coordinates(guess_lat, guess_lng)
         distance_off = haversine_formula(guess_lat, guess_lng, round_lat, round_lng)
         user_score = get_score(distance_off)
-
+        game_data["all_round_scores"].append(user_score)
+        game_data["all_round_distances"].append(distance_off)
         # Update database
         user_id = user["user_id"]
         round_id = game_data["round_id"]
@@ -332,11 +349,11 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
 
 
 
-
+        new_user = user['user_id']
         string_location = all_actual_string_locations[0]
-        new_game = create_new_game(user['user_id'], db)  # Creates games table record
-        new_round = create_round(new_game.id, 1, string_location, db)  # Creates rounds table record
-        user_round = create_user_round(new_round.id, user['user_id'], db)  # Creates user_rounds table record
+        new_game = create_new_game(new_user, db)  # Creates games table record
+        new_round = create_round(new_game.id, 1, string_location, db)  # dCreates rounds table record
+        user_round = create_user_round(new_round.id, new_user, new_game.id, db)  # Creates user_rounds table record
 
 
         game_data = {
@@ -348,8 +365,10 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
             "current_round": new_round.round_number,
             "current_string_location": string_location,
             "all_pano_ids": round_pano_ids,
+            "all_round_scores": [],
             "number_of_locations": number_of_locations,
             "total_score": user_round.round_score,
+            "all_round_distances": [],
             "all_actual_string_locations": all_actual_string_locations,
 
         }
@@ -399,13 +418,14 @@ async def get_next_round(request: Request, db: Session = Depends(get_db)):
     current_round = game_data['current_round']
     pano_id = game_data['all_pano_ids'][current_round - 1]
 
-
+    game_id = game_data['game_id']
+    user_id = user["user_id"]
     # This is what displays the address on the frontend.
     string_location = get_location_string(float(game_data['game_lats'][current_round - 1]), float(game_data['game_lngs'][current_round - 1]))
 
     # Creating a new round and user stats for that specific round
     new_round = create_round(game_data['game_id'], current_round, string_location, db)
-    user_round = create_user_round(new_round.id, user['user_id'], db)
+    user_round = create_user_round(new_round.id, user_id,  game_id, db)
 
     game_data['round_id'] = new_round.id
     game_data['current_pano_id'] = pano_id

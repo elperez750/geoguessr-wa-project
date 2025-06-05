@@ -24,6 +24,7 @@ type GameContextType = {
     roundCoordinates: Coordinate | null
     totalScore: number
     totalRounds: number
+    totalDistance: number
     gameStatus: "idle" | "loading" | "active" | "finished"
     gameInitialized: boolean
     isLoading: boolean
@@ -31,7 +32,10 @@ type GameContextType = {
     roundDistanceOff: number | null
     guessLocation: string | null
     actualLocation: string | null
-
+    allLocations: string[]
+    allScores: number[]
+    allDistances: number[]
+    averageDistance: number
 
     // Setters
     setRoundNumber: (round: number) => void
@@ -48,6 +52,12 @@ type GameContextType = {
     setGuessCoords: (coords: Coordinate | null) => void
     setActualLocation: (location: string | null) => void
     setGuessLocation: (location: string | null) => void
+    setAllScores: (scores: number[]) => void
+    setAllLocations: (locations: string[]) => void
+    setAllDistances: (distances: number[]) => void
+    setTotalDistance: (distance: number) => void
+    setAverageDistance: (distance: number) => void
+
     // Actions
     startGame: () => Promise<void>
     submitGuess: (coords: Coordinate) => void
@@ -99,14 +109,18 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [actualLocation, setActualLocation] = useState<string | null>(defaultValues.actualLocation)
     const [guessLocation, setGuessLocation] = useState<string | null>(defaultValues.guessLocation)
     const [gameInitialized, setGameInitialized] = useState<boolean>(defaultValues.gameInitialized)
-
+    const [allScores, setAllScores] = useState<number[]>([])
+    const [allDistances, setAllDistances] = useState<number[]>([])
+    const [averageDistance, setAverageDistance] = useState<number>(0)
+    const [allLocations, setAllLocations] = useState<string[]>([])
+    const [totalDistance, setTotalDistance] = useState<number>(0)
     //Function to start the game
     // We are getting the pano id, game id, round id, user id, current round, and total rounds
     // This just sets the following attributes for use in the map components
     const startGame = async () => {
         setIsLoading(true)
         setGameStatus("loading")
-
+        router.push('/loading')
         try {
             const response = await api.post('game/start-game')
             const data = response.data
@@ -121,7 +135,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setGameInitialized(true)
             setRoundCoordinates({lat: data.game_lats[0], lng: data.game_lngs[0]})
             setActualLocation(data.all_actual_string_locations[0])
-
 
             toast.success("Game started!")
 
@@ -229,10 +242,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     const gameResults = async() => {
         try {
-            const response = await api.get('game/get-game-results')
-            const data = response.data
-            console.log(response)
-            setTotalScore(data.total_score)
+            const gameStats = await api.get('game/get-game-results')
+            console.log(gameStats)
+            const data = gameStats.data
+            setTotalScore(data.game_stats.total_score)
+            setTotalDistance(data.game_stats.total_distance)
+            setAllScores(data.all_scores)
+            setAllDistances(data.all_distances)
+            setAverageDistance(data.average_distance)
+            setAllLocations(data.all_locations)
+
 
             router.push('/game-results')
 
@@ -249,9 +268,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
 
     // Reset game to default values
-    const resetGame = () => {
+    const resetGame = async() => {
         try {
-            api.post('game/reset-game')
+            await api.post('game/reset-game')
             setRoundScore(defaultValues.roundScore)
             setRoundNumber(defaultValues.roundNumber)
             setTotalScore(defaultValues.totalScore)
@@ -301,7 +320,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         guessLocation,
         actualLocation,
         gameInitialized,
-
+        allDistances,
+        allScores,
+        allLocations,
+        averageDistance,
+        totalDistance,
 
         // Setters
         setRoundNumber,
@@ -318,6 +341,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         setRoundDistanceOff,
         setActualLocation,
         setGuessLocation,
+        setAllDistances,
+        setAllScores,
+        setAverageDistance,
+        setAllLocations,
+        setTotalDistance,
         // Actions
         startGame,
         submitGuess,

@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import { Play, UserPlus, Mountain, Target, Trophy, MapPin } from "lucide-react";
 import Image from "next/image";
 import Mountains from "@/assets/images/mountains.avif";
-
+import {useGame} from "@/app/context/GameContext";
+import {useEffect} from "react";
 export default function Home() {
     const router = useRouter();
+    const {resetGame} = useGame();
+    useEffect(() => {
+        resetGame()
+    }, []);
 
 
     const handlePlayGame = () => {

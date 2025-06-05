@@ -48,5 +48,5 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.now)
 
     # Relationships to other models
-    user_rounds = relationship('UserRound', back_populates='user')
+    user_round = relationship('UserRound', back_populates='user')
     game = relationship('Game', back_populates='user')

@@ -10,7 +10,7 @@ const StreetViewComponent = () => {
     const streetViewLib = useMapsLibrary('streetView');
 
 
-    const { startGame, panoId, submitGuess, guessCoords, roundNumber, gameStatus, gameInitialized } = useGame();
+    const { startGame, isLoading, panoId, submitGuess, guessCoords, roundNumber, gameStatus, gameInitialized } = useGame();
     const streetViewRef = useRef<HTMLDivElement | null>(null);
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 
@@ -85,7 +85,7 @@ const StreetViewComponent = () => {
                     <GuessMapComponent />
                 </div>
                 <div className="mt-2">
-                    <Button className={'w-[300px] cursor-pointer'} onClick={handleGuessSubmit}>Guess</Button>
+                    <Button className={'w-[300px] cursor-pointer'} onClick={handleGuessSubmit} disabled={isLoading}>Guess</Button>
                 </div>
             </div>
         </div>

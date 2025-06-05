@@ -73,8 +73,8 @@ class Game(Base):
     total_score = Column(Float)
     total_distance = Column(Float)
     locations = Column(JSON)
-
-    rounds = relationship('Round', back_populates='game')
+    user_round = relationship('UserRound', back_populates='game')
+    round = relationship('Round', back_populates='game')
     user = relationship('User', back_populates='game')
 
 class Round(Base):
@@ -102,8 +102,8 @@ class Round(Base):
     round_number = Column(Integer)
     game_id = Column(Integer, ForeignKey('games.id'))
     location_string = Column(Text)
-    user_rounds = relationship('UserRound', back_populates='round')
-    game = relationship('Game', back_populates='rounds')
+    user_round = relationship('UserRound', back_populates='round')
+    game = relationship('Game', back_populates='round')
 
 
 class UserRound(Base):
@@ -126,17 +126,20 @@ class UserRound(Base):
     Relationships:
         user: Many-to-one relationship with User model
         round: Many-to-one relationship with Round model
+        game: Many-to-one relationship with Game model
     """
     __tablename__ = 'user_rounds'
 
     id = Column(Integer, primary_key=True)
     round_id = Column(Integer, ForeignKey('rounds.id'))
     user_id = Column(Integer, ForeignKey('users.id'))
+    game_id = Column(Integer, ForeignKey('games.id'))
     guess_lat = Column(Float)
     guess_lng = Column(Float)
     distance_off = Column(Float)
     round_score = Column(Float)
     submitted_at = Column(DateTime, default=datetime.now)
-    user = relationship('User', back_populates='user_rounds')
-    round = relationship('Round', back_populates='user_rounds')
+    user = relationship('User', back_populates='user_round')
+    round = relationship('Round', back_populates='user_round')
+    game = relationship('Game', back_populates='user_round')
 

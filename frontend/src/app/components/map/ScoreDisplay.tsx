@@ -8,7 +8,7 @@ export const ScoreDisplay = () => {
     const maxScore = 5000;
     const scorePercentage = Math.max(0, Math.min((roundScore / maxScore) * 100, 100));
 
-
+    
     return (
         <Card className="w-full max-w-md mx-auto">
             <CardHeader>
