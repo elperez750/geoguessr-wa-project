@@ -17,7 +17,6 @@ Dependencies:
 - FastAPI: For HTTP handling and exceptions
 """
 
-import time
 from jose import jwt, JWTError
 import os
 from datetime import datetime, timedelta
@@ -25,6 +24,7 @@ from passlib.hash import pbkdf2_sha256
 from app.db import get_db
 from app.models import User
 from fastapi import HTTPException, Depends, Request
+from datetime import datetime, timedelta, timezone
 
 # Load secret key from environment variables
 SECRET_KEY = str(os.getenv("SECRET_KEY"))
@@ -71,6 +71,17 @@ def verify_token(token):
 
     except JWTError:
         raise Exception('Invalid token')
+
+
+def set_cookie(response, access_token, expiry_days: int = 1):
+    expires = datetime.now(timezone.utc) + timedelta(days=expiry_days)
+    response.set_cookie(
+        "access_token",
+        value=access_token,
+        httponly=True,
+        expires=expires
+    )
+    return response
 
 
 def get_user_from_cookie(request):

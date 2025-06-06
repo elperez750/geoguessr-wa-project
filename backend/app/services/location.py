@@ -85,7 +85,7 @@ def get_random_pano_id(random_id: int, db: Session = Depends(get_db)):
         location = db.query(Location).filter(
             Location.pano_id.isnot(None),
             Location.pano_id != ''
-        ).order_by(func.random()).first()
+        ).order_by(func.random() * 3642).first()
 
         if location and location.pano_id:
             return location.pano_id

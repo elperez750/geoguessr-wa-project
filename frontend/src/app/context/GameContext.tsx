@@ -120,7 +120,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const startGame = async () => {
         setIsLoading(true)
         setGameStatus("loading")
+        
+        // Only navigate to loading if we're not already there
+
         router.push('/loading')
+
+
         try {
             const response = await api.post('game/start-game')
             const data = response.data
@@ -131,18 +136,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setRoundId(data.round_id)
             setRoundNumber(data.current_round)
             setTotalRounds(data.total_rounds || 5)
-            setGameStatus("active")
-            setGameInitialized(true)
             setRoundCoordinates({lat: data.game_lats[0], lng: data.game_lngs[0]})
             setActualLocation(data.all_actual_string_locations[0])
+            setGameInitialized(true)
+            setGameStatus("active")
 
             toast.success("Game started!")
 
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
                 toast.error(error.response?.data?.detail || "Failed to start game")
+                setGameStatus("idle")
             } else {
                 toast.error("Unknown error occurred")
+                setGameStatus("idle")
             }
         }
         finally {
@@ -205,6 +212,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             return
         }
 
+
         setIsLoading(true)
 
         try {
@@ -218,17 +226,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setRoundId(data.round_id)
             setRoundNumber(data.current_round)
             setRoundScore(0)
+            setGuessCoords(null)
             setRoundCoordinates({lat: data.game_lats[curr], lng: data.game_lngs[curr]})
             setActualLocation(data.all_actual_string_locations[curr])
 
-
-
-
+            toast.success("Next round loaded!")
             router.push('/play')
 
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
-                toast.error(error.response?.data?.detail || "Failed to start game")
+                toast.error(error.response?.data?.detail || "Failed to load next round")
             } else {
                 toast.error("Unknown error occurred")
             }
@@ -245,8 +252,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             const gameStats = await api.get('game/get-game-results')
             console.log(gameStats)
             const data = gameStats.data
-            setTotalScore(data.game_stats.total_score)
-            setTotalDistance(data.game_stats.total_distance)
+            setTotalScore(data.total_score)
+            setTotalDistance(data.total_distance)
             setAllScores(data.all_scores)
             setAllDistances(data.all_distances)
             setAverageDistance(data.average_distance)

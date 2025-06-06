@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import {AuthProvider} from "@/app/context/AuthContext";
 import { Toaster } from "sonner";
 import Navbar from "@/app/components/Navbar";
 import {GameProvider} from "@/app/context/GameContext";
-const geistSans = Geist({
-    variable: "--font-geist-sans",
+
+const inter = Inter({
+    variable: "--font-inter",
     subsets: ["latin"],
+    weight: ["300", "400", "500", "600", "700", "800"],
+    display: "swap",
 });
 
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+    variable: "--font-jetbrains-mono",
     subsets: ["latin"],
+    display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -27,9 +31,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-        <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 text-gray-900 min-h-screen`}
-        >
+        <body className={`${inter.variable} ${jetbrainsMono.variable} font-inter antialiased bg-gray-100 text-gray-900 min-h-screen`}>
 
         <GameProvider>
         <AuthProvider>
@@ -42,10 +44,6 @@ export default function RootLayout({
 
 
         <main className="">{children}</main>
-
-        <footer className="w-full p-4 text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} GeoGuessr WA. All rights reserved.
-        </footer>
 
 
         </AuthProvider>

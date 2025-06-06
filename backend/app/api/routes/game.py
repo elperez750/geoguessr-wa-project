@@ -53,36 +53,25 @@ router = APIRouter()
 # PYDANTIC MODELS (Data Transfer Objects)
 # ============================================================================
 
-class GameCreate(BaseModel):
+class GameRoundResponse(BaseModel):
     """Request model for creating a new game"""
-    started_at: str
-
-
-class GameResponse(BaseModel):
-    """Response model for game data"""
-    id: int
-    started_at: datetime
-    completed_at: Optional[datetime] = None
-    total_score: Optional[float] = None
-    total_distance: Optional[float] = None
-    locations: Optional[List] = None
-
-
-class RoundCreate(BaseModel):
-    """Request model for creating a new round"""
-    round_number: int
     game_id: int
-    area_name: str
-    location_id: int
-
-
-class UserRoundCreate(BaseModel):
-    """Request model for creating a user's round participation"""
+    game_lats: List[float]
+    game_lngs: List[float]
     round_id: int
     user_id: int
+    current_round: int
+    current_string_location: str
+    all_pano_ids: List[str]
+    all_round_scores: List[float]
+    number_of_locations: int
+    total_score: float
+    all_round_distances: List[float]
+    all_actual_string_locations: List[str]
 
 
-class RoundResults(BaseModel):
+
+class RoundResultsResponse(BaseModel):
     success: bool
     round_lat: float
     round_lng: float
@@ -96,6 +85,15 @@ class RoundResults(BaseModel):
     total_distance: float
 
 
+class GameResults(BaseModel):
+    game_id: int
+    total_score: float
+    total_distance: float
+    average_distance: float
+    all_locations: List[str]
+    all_scores: List[float]
+    all_distances: List[float]
+    
 
 
 
@@ -129,7 +127,7 @@ Round Table Structure:
 # ============================================================================
 
 
-@router.get('/get-game-results')
+@router.get('/get-game-results', response_model=GameResults)
 def get_game_stats(request: Request, db: Session = Depends(get_db)):
 
 
@@ -164,7 +162,7 @@ def get_game_stats(request: Request, db: Session = Depends(get_db)):
 
 
 @limiter.limit("1/2seconds")
-@router.get('/get-round-results', response_model=RoundResults)
+@router.get('/get-round-results', response_model=RoundResultsResponse)
 def get_round_results(request: Request, db: Session = Depends(get_db)):
     """
     Calculate and return results after a round is completed.
@@ -255,6 +253,9 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
             "total_distance": round(game_data["total_distance"], 2)
         }
 
+
+
+
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
@@ -276,7 +277,7 @@ async def reset_game(request: Request, db: Session = Depends(get_db)):
     redis_client.delete(session_key)
     return {"success": True}
 
-@router.post('/start-game')
+@router.post('/start-game', response_model=GameRoundResponse)
 async def start_game(request: Request, db: Session = Depends(get_db)):
     """
     Initialize a new game session for the authenticated user.
@@ -316,6 +317,7 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
     Redis Caching Strategy:
         - 'user:{user_id}:game_session' is set to game data JSON string'
     """
+
     # Authentication check
     user = get_user_from_cookie(request)
     if not user:
@@ -333,7 +335,6 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
 
 
         # We will get 5 different pano ids
-
         round_pano_ids = [get_random_pano_id(random.randint(1, number_of_locations), db) for _ in range(5)]
 
 
@@ -341,19 +342,23 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
         all_lats = []
         all_lngs = []
         all_actual_string_locations = []
+        #This for loop will  iterate over all of the pano_ids in the round_pano_ids array
         for pano_id in round_pano_ids:
+            # Getting coordinates from the pano id
             coords = get_coords_from_pano_id(str(pano_id), db)
-            all_lats.append(coords['lat'])
-            all_lngs.append(coords['lng'])
-            all_actual_string_locations.append(get_address_from_coordinates(coords['lat'], coords['lng']))
+            lat = coords['lat']
+            lng = coords['lng']
+            all_lats.append(lat)
+            all_lngs.append(lng)
+            all_actual_string_locations.append(get_address_from_coordinates(lat, lng))
 
 
-
-        new_user = user['user_id']
+        # Getting the user id
+        user_id = user['user_id']
         string_location = all_actual_string_locations[0]
-        new_game = create_new_game(new_user, db)  # Creates games table record
-        new_round = create_round(new_game.id, 1, string_location, db)  # dCreates rounds table record
-        user_round = create_user_round(new_round.id, new_user, new_game.id, db)  # Creates user_rounds table record
+        new_game = create_new_game(user_id, db)  # Creates games table record
+        new_round = create_round(new_game.id, 1, string_location, db)  # Creates rounds table record
+        user_round = create_user_round(new_round.id, user_id, new_game.id, db)  # Creates user_rounds table record
 
 
         game_data = {
@@ -370,19 +375,17 @@ async def start_game(request: Request, db: Session = Depends(get_db)):
             "total_score": user_round.round_score,
             "all_round_distances": [],
             "all_actual_string_locations": all_actual_string_locations,
-
         }
 
         game_data_json = json.dumps(game_data)
         redis_client.set(session_key, game_data_json)
-        redis_response = redis_client.get(session_key)
-        return json.loads(redis_response)
+        return game_data
 
 
     return json.loads(redis_response)
 
 
-@router.post('/next-round')
+@router.post('/next-round', response_model=GameRoundResponse)
 async def get_next_round(request: Request, db: Session = Depends(get_db)):
     """
     Advance to the next round of the current game.
@@ -404,7 +407,7 @@ async def get_next_round(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="User is not logged in")
 
 
-
+    # We get the game session for the user
     session_key = f'user:{user["user_id"]}:game_session'
     redis_response = redis_client.get(session_key)
 
@@ -414,27 +417,36 @@ async def get_next_round(request: Request, db: Session = Depends(get_db)):
 
 
 
+    # Convert redis cache to json
     game_data = json.loads(redis_response)
+
+    # Getting current round
     current_round = game_data['current_round']
+
+    # Getting pano id with the current round
+    # We have to subtract 1 from current round for proper indexing
     pano_id = game_data['all_pano_ids'][current_round - 1]
+
 
     game_id = game_data['game_id']
     user_id = user["user_id"]
+
     # This is what displays the address on the frontend.
     string_location = get_location_string(float(game_data['game_lats'][current_round - 1]), float(game_data['game_lngs'][current_round - 1]))
 
     # Creating a new round and user stats for that specific round
+
+    # We only create these two. We do not want to create a new game in this instance.
     new_round = create_round(game_data['game_id'], current_round, string_location, db)
     user_round = create_user_round(new_round.id, user_id,  game_id, db)
 
+    # Update the round id and the pano id in the redis cache
     game_data['round_id'] = new_round.id
-    game_data['current_pano_id'] = pano_id
     game_data_json = json.dumps(game_data)
     redis_client.set(session_key, game_data_json)
+    print(game_data)
 
-    redis_response = redis_client.get(session_key)
-    print(json.loads(redis_response))
-    return json.loads(redis_response)
+    return game_data
 
 # ============================================================================
 # UTILITY FUNCTIONS USED (imported from app.services)

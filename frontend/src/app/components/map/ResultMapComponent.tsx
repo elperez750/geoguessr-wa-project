@@ -49,9 +49,23 @@ const ResultMapComponent: React.FC<ResultMapComponentProps> = ({
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     const mapRef = useRef<google.maps.Map | null>(null);
 
-    // Calculate center point between the two locations
-    const centerLat = (actualLocation.lat + guessLocation.lat) / 2;
-    const centerLng = (actualLocation.lng + guessLocation.lng) / 2;
+    // Washington State center coordinates for consistent alignment
+    const washingtonCenter = { lat: 47.751076, lng: -120.740135 };
+    
+    // Calculate appropriate zoom based on distance between points
+    const calculateZoom = (loc1: CoordinateType, loc2: CoordinateType) => {
+        const distance = Math.sqrt(
+            Math.pow(loc1.lat - loc2.lat, 2) + Math.pow(loc1.lng - loc2.lng, 2)
+        );
+        
+        // Adjust zoom based on distance (these values work well for Washington state)
+        if (distance > 5) return 6;  // Far apart
+        if (distance > 2) return 7;  // Medium distance
+        if (distance > 1) return 8;  // Close
+        return 9; // Very close
+    };
+
+    const zoom = calculateZoom(actualLocation, guessLocation);
 
     if (!googleMapsApiKey) {
         return <p className="text-red-500">Cannot find the API key</p>;
@@ -60,11 +74,10 @@ const ResultMapComponent: React.FC<ResultMapComponentProps> = ({
     return (
         <>
             <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY} libraries={["streetView"]}>
-
             <Map
-                style={{ width: "100vw", height: "60vh" }}
-                defaultCenter={{ lat: centerLat, lng: centerLng }}
-                defaultZoom={4}
+                style={{ width: "100%", height: "100%" }}
+                defaultCenter={washingtonCenter}
+                defaultZoom={zoom}
                 gestureHandling="greedy"
                 disableDefaultUI={true}
                 ref={mapRef}
@@ -110,24 +123,7 @@ const ResultMapComponent: React.FC<ResultMapComponentProps> = ({
                     }}
                 />
             </Map>
-
-            <div className="mt-4 p-4 bg-gray-100 rounded">
-                <h2 className="text-xl font-bold mb-2">Round Result</h2>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <h3 className="font-medium text-green-600">Actual Location:</h3>
-                        <p>Lat: {actualLocation.lat.toFixed(4)}</p>
-                        <p>Lng: {actualLocation.lng.toFixed(4)}</p>
-                    </div>
-                    <div>
-                        <h3 className="font-medium text-red-600">Your Guess:</h3>
-                        <p>Lat: {guessLocation.lat.toFixed(4)}</p>
-                        <p>Lng: {guessLocation.lng.toFixed(4)}</p>
-                    </div>
-                </div>
-
-            </div>
-                </APIProvider>
+            </APIProvider>
         </>
     );
 };

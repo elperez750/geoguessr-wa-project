@@ -18,6 +18,7 @@ Dependencies:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from datetime import datetime, timedelta
 from sqlalchemy.sql.functions import user
 
 from app.services import create_access_token, redis_client
@@ -25,7 +26,7 @@ from pydantic import BaseModel
 from app.db import get_db
 from sqlalchemy.orm import Session
 
-from app.services.authentication import check_if_user_exists, create_user, verify_credentials, get_user_from_cookie
+from app.services.authentication import check_if_user_exists, create_user, verify_credentials, get_user_from_cookie, set_cookie
 
 router = APIRouter()
 
@@ -53,11 +54,17 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    created_at: datetime
+
 # ============================================================================
 # AUTHENTICATION ROUTES
 # ============================================================================
 
-@router.post('/register')
+@router.post('/register', response_model=UserResponse, status_code=201)
 async def register_user(user: UserRegister, db: Session = Depends(get_db)):
     """
     Register a new user account
@@ -83,10 +90,10 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already registered")
     else:
         new_user = create_user(db, user.username, user.password, user.email)
-        return {'message': 'User registered', 'user': new_user}
+        return {'user': new_user}
 
 
-@router.post('/login')
+@router.post('/login', response_model=UserResponse, status_code=200,)
 async def login_user(request: UserLogin, response: Response, db: Session = Depends(get_db)):
     """
     Authenticate a user and establish a session
@@ -117,15 +124,9 @@ async def login_user(request: UserLogin, response: Response, db: Session = Depen
     user = verify_credentials(db, request.email, request.password)
     if user:
         access_token = create_access_token(user['id'], user['username'], user['email'])
-        response.set_cookie(key="access_token",
-                            value=access_token,
-                            httponly=True,
-                            secure=True,
-                            samesite='none',
-                            path="/"
-                        )
+        set_cookie(response, access_token)
 
-        return {"user": user}
+        return user
     else:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
@@ -148,6 +149,8 @@ def logout_user(request: Request, response: Response, db: Session = Depends(get_
     redis_client.delete(game_session_key)
     
     return {"message": "You have been logged out successfully."}
+
+
 @router.get('/me')
 def get_user_details(request: Request):
     """

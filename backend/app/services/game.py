@@ -60,14 +60,14 @@ def update_game(user_id: int, total_score: int, total_distance: float, db: Sessi
         game.total_distance = total_distance
         db.commit()
         return {
-            "game_stats": {
-                "game_id": int(max_id),
-                "total_score": float(game.total_score),
-                "total_distance": float(game.total_distance),
-                "average_distance": round(game.total_distance / 5, 2) if game.total_distance else 0
+
+            "game_id": int(max_id),
+            "total_score": float(game.total_score),
+            "total_distance": float(game.total_distance),
+            "average_distance": round(game.total_distance / 5, 2) if game.total_distance else 0
 
 
-            }
+
         }
     else:
         raise ValueError("game not found")

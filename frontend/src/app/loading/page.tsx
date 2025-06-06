@@ -28,16 +28,27 @@ const washingtonFacts = [
 ];
 
 export default function LoadingPage() {
-  const { isLoading } = useGame();
+  const { isLoading, gameStatus, startGame, gameInitialized, nextRound, roundNumber } = useGame();
   const router = useRouter();
   const [currentFact, setCurrentFact] = useState("");
   const [fadeClass, setFadeClass] = useState("opacity-100");
+  const [hasCalledNextRound, setHasCalledNextRound] = useState(false);
 
   useEffect(() => {
     // Select a random fact when component mounts
     const randomFact = washingtonFacts[Math.floor(Math.random() * washingtonFacts.length)];
     setCurrentFact(randomFact);
-  }, []);
+
+    // Start the game if it's not already initialized
+    if (gameStatus === "idle" && !gameInitialized) {
+      startGame();
+    }
+    // If game is already active (coming from results page), load next round
+    else if (gameStatus === "active" && gameInitialized && !hasCalledNextRound) {
+      setHasCalledNextRound(true);
+      nextRound();
+    }
+  }, [gameStatus, gameInitialized, startGame, nextRound, hasCalledNextRound]);
 
   useEffect(() => {
     // Change fact every 4 seconds with fade animation
@@ -54,11 +65,11 @@ export default function LoadingPage() {
   }, []);
 
   useEffect(() => {
-    // Navigate to play page when loading is complete
-    if (!isLoading) {
+    // Navigate to play page only for initial game start (startGame doesn't navigate)
+    if (!isLoading && gameStatus === "active" && gameInitialized && roundNumber === 1) {
       router.push('/play');
     }
-  }, [isLoading, router]);
+  }, [isLoading, gameStatus, gameInitialized, roundNumber, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 relative overflow-hidden">
@@ -83,7 +94,7 @@ export default function LoadingPage() {
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
           Exploring Washington
         </h1>
-        
+
         <p className="text-xl text-white/90 mb-12 font-light">
           Preparing your geography adventure...
         </p>

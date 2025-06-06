@@ -154,7 +154,7 @@ export const GameResults = () => {
                           <p className="text-2xl font-bold text-emerald-600">{round.score.toLocaleString()}</p>
                         </div>
                         <div className="text-center lg:text-right">
-                          <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Distance</p>
+                          <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Distance off</p>
                           <p className="text-2xl font-bold text-teal-600">{round.distance} mi</p>
                         </div>
                         <div className="text-center lg:text-right">

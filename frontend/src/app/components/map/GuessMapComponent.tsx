@@ -29,12 +29,15 @@ const MapComponent = () => {
         return <p className="text-red-500">Cannot find the Apikey</p>
     }
 
+    // Washington State center coordinates for consistent alignment
+    const washingtonCenter = { lat: 47.751076, lng: -120.740135 };
+
     return (
         <>
             <Map
-                style={{ width: "80vw", height: "50vh" }}
-                defaultCenter={{ lat: 40.0000, lng: -114.3342 }}
-                defaultZoom={5} // Changed to 7 from 10
+                style={{ width: "100%", height: "100%" }}
+                defaultCenter={washingtonCenter}
+                defaultZoom={7}
                 gestureHandling="greedy"
                 disableDefaultUI={true}
                 onClick={handleClickOnMap}
@@ -44,16 +47,6 @@ const MapComponent = () => {
 
                 {clickCoords && <Marker position={clickCoords} />}
             </Map>
-
-            {clickCoords && (
-                <div className="mt-4">
-                    <h2 className="text-lg font-medium">Selected Coordinates:</h2>
-                    <p>Latitude: {clickCoords.lat.toFixed(4)}</p>
-                    <p>Longitude: {clickCoords.lng.toFixed(4)}</p>
-                </div>
-            )}
-
-
         </>
     );
 }
