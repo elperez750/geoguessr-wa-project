@@ -15,7 +15,7 @@ export function LoginFormCard() {
         password: "",
     })
 
-    const { login, user } = useAuth()
+    const { login } = useAuth()
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target

@@ -1,13 +1,5 @@
-import {useEffect} from "react";
-
-import { useGame } from "@/app/context/GameContext";
-import { useRouter} from "next/navigation";
-
-
 
 export default function LoadingRound() {
-    const { isLoading, gameStatus, gameInitialized } = useGame();
-    const router = useRouter();
 
 
 

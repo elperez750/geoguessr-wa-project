@@ -28,8 +28,7 @@ const washingtonFacts = [
 
 
 export default function LoadingGame() {
-    const {  gameStatus, startGame, gameInitialized, nextRound } = useGame();
-    const router = useRouter();
+    const {  gameStatus, startGame, gameInitialized } = useGame();
     const [currentFact, setCurrentFact] = useState("");
     const [fadeClass, setFadeClass] = useState("opacity-100");
 

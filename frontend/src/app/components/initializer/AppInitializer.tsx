@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function AppInitializer({ children }: { children: React.ReactNode }) {
-    const { restoreGame, gameStatus, gameInitialized } = useGame();
+    const { restoreGame } = useGame();
     const router = useRouter();
     const pathname = usePathname();
     const [isInitializing, setIsInitializing] = useState(true);

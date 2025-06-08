@@ -4,13 +4,11 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Target, Crosshair } from "lucide-react";
 import { useGame } from "@/app/context/GameContext";
 import GuessMapComponent from "@/app/components/map/GuessMapComponent";
-import { useRouter } from "next/navigation";
 const StreetViewComponent = () => {
-    const router = useRouter();
     const streetViewLib = useMapsLibrary('streetView');
 
 
-    const { startGame, isLoading, panoId, submitGuess, guessCoords, gameStatus, gameInitialized } = useGame();
+    const { isLoading, panoId, submitGuess, guessCoords } = useGame();
     const streetViewRef = useRef<HTMLDivElement | null>(null);
     const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
 
@@ -22,11 +20,7 @@ const StreetViewComponent = () => {
 
         try {
             const results = await submitGuess(guessCoords);
-            if (results) {
-                // Handle successful guess submission
-                console.log("Guess results:", results);
-                // You might want to show results or navigate to results page
-            }
+
         } catch (error) {
             console.error("Error submitting guess:", error);
         }

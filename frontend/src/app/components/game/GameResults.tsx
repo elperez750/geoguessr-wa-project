@@ -124,7 +124,7 @@ export const GameResults = () => {
           </h2>
           
           <div className="space-y-4">
-            {roundDetails.map((round, index) => {
+            {roundDetails.map((round) => {
               const rating = getPerformanceRating(round.score);
               return (
                 <div key={round.round} className="group hover:scale-[1.02] transition-all duration-200">

@@ -21,7 +21,7 @@ export function RegisterFormCard({ onRegisterSuccess }: RegisterFormCardProps) {
     confirmPassword: "",
   })
 
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading] = useState(false)
   const { register } = useAuth()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
