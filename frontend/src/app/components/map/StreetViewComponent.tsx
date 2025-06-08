@@ -19,7 +19,7 @@ const StreetViewComponent = () => {
         }
 
         try {
-            const results = await submitGuess(guessCoords);
+            await submitGuess(guessCoords);
 
         } catch (error) {
             console.error("Error submitting guess:", error);

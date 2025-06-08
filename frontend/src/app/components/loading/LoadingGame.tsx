@@ -42,7 +42,7 @@ export default function LoadingGame() {
             startGame()
 
         }
-    }, []);
+    }, [gameInitialized, gameStatus, startGame]);
 
 
 

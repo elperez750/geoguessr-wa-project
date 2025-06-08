@@ -46,7 +46,7 @@ export default function AppInitializer({ children }: { children: React.ReactNode
         };
 
         initializeApp();
-    }, []); // Only run once on app load
+    }, [pathname, restoreGame, router]); // Only run once on app load
 
     // Show loading screen while initializing
     if (isInitializing) {

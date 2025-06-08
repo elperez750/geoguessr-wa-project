@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       
       return true
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = error.response?.data?.detail || 
                           error.response?.data?.message || 
                           "Registration failed. Please try again."
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get("/auth/me")
       setUser(response.data)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error refreshing user data:", error)
     }
   }

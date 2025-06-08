@@ -69,7 +69,7 @@ export const GameResults = () => {
                 Game Complete!
               </h1>
               <p className="text-lg text-slate-600 mb-6">
-                You've explored {roundDetails.length} amazing locations across Washington State
+                You have explored {roundDetails.length} amazing locations across Washington State
               </p>
               
               {/* Performance Badge */}

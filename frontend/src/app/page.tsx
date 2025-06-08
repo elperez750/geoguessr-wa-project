@@ -12,7 +12,7 @@ export default function Home() {
     const {resetGame} = useGame();
     useEffect(() => {
         resetGame()
-    }, []);
+    }, [resetGame]);
 
 
     const handlePlayGame = () => {
