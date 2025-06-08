@@ -64,6 +64,7 @@ type GameContextType = {
     nextRound: () => Promise<void>
     gameResults: () => void
     resetGame: () => void
+    restoreGame: () => Promise<boolean>
 }
 
 // Creating the Game Context
@@ -123,7 +124,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         
         // Only navigate to loading if we're not already there
 
-        router.push('/loading')
 
 
         try {
@@ -214,6 +214,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
 
         setIsLoading(true)
+        setGameStatus("loading")
 
         try {
             // Call your next round endpoint
@@ -229,9 +230,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setGuessCoords(null)
             setRoundCoordinates({lat: data.game_lats[curr], lng: data.game_lngs[curr]})
             setActualLocation(data.all_actual_string_locations[curr])
-
+            setGameStatus("active")
             toast.success("Next round loaded!")
-            router.push('/play')
 
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
@@ -308,6 +308,90 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
 
 
+    const restoreGame = async () => {
+
+        console.log("🔄 Attempting to restore game state...");
+        setIsLoading(true);
+        setGameStatus("loading");
+
+        try {
+            // Check if there's an active game session on the backend
+            const response = await api.get('game/get-current-game');
+            const data = response.data;
+
+            console.log("📥 Backend response:", data);
+
+            if (data.has_active_game) {
+                console.log("✅ Active game found, restoring state...");
+
+                // Restore all game state from backend
+                setPanoId(data.current_pano_id || "");
+                setGameId(data.game_id);
+                setUserId(data.user_id);
+                setRoundId(data.round_id);
+                setRoundNumber(data.current_round || 1);
+                setTotalRounds(data.total_rounds || 5);
+
+                // Set coordinates if available
+                if (data.current_lat && data.current_lng) {
+                    setRoundCoordinates({
+                        lat: data.current_lat,
+                        lng: data.current_lng
+                    });
+                }
+
+                setActualLocation(data.current_location || "");
+                setTotalScore(data.total_score || 0);
+                setTotalDistance(data.total_distance || 0);
+
+                // Mark game as initialized and active
+                setGameInitialized(true);
+                setGameStatus("active");
+
+                // Reset round-specific state (since we don't know if user was mid-guess)
+                setRoundScore(0);
+                setGuessCoords(null);
+                setRoundDistanceOff(null);
+                setGuessLocation(null);
+
+                console.log(`✅ Game restored successfully - Round ${data.current_round}`);
+                toast.success(`Game restored! You're on round ${data.current_round}`);
+
+                return true; // Game was successfully restored
+
+            } else {
+                console.log("❌ No active game found on backend");
+
+                // Reset to default state
+                resetGame();
+
+                return false; // No game to restore
+            }
+
+        } catch (error) {
+            console.error("❌ Error restoring game:", error);
+
+            // On error, reset to safe defaults
+            resetGame();
+
+            if (axios.isAxiosError(error)) {
+                // Don't show error toast for 404/401 - these are expected when no game exists
+                if (error.response?.status !== 404 && error.response?.status !== 401) {
+                    toast.error("Failed to restore game session");
+                }
+            } else {
+                toast.error("Error connecting to game server");
+            }
+
+            return false;
+
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
+
 
 
     const value: GameContextType = {
@@ -358,6 +442,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         submitGuess,
         nextRound,
         resetGame,
+        restoreGame,
         gameResults
     }
 

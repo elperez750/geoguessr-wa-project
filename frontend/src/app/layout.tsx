@@ -5,6 +5,7 @@ import {AuthProvider} from "@/app/context/AuthContext";
 import { Toaster } from "sonner";
 import Navbar from "@/app/components/Navbar";
 import {GameProvider} from "@/app/context/GameContext";
+import AppInitializer from "@/app/components/initializer/AppInitializer";
 
 const inter = Inter({
     variable: "--font-inter",
@@ -35,6 +36,11 @@ export default function RootLayout({
 
         <GameProvider>
         <AuthProvider>
+        <AppInitializer>
+
+
+
+
 
 
 
@@ -45,6 +51,7 @@ export default function RootLayout({
 
         <main className="">{children}</main>
 
+        </AppInitializer>
 
         </AuthProvider>
         </GameProvider>

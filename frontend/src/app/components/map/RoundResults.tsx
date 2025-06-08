@@ -6,11 +6,12 @@ import ResultMapComponent from "@/app/components/map/ResultMapComponent";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 export const RoundResults = () => {
-    const {roundCoordinates, roundDistanceOff, guessCoords, nextRound, roundNumber, gameResults, isLoading} = useGame()
+    const {roundCoordinates, roundDistanceOff, guessCoords, roundNumber, gameResults, nextRound} = useGame()
     const router = useRouter();
 
     const goToNextRound = () => {
         router.push("/loading")
+        nextRound()
     }
 
     return (

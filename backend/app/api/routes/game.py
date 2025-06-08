@@ -264,6 +264,58 @@ def get_round_results(request: Request, db: Session = Depends(get_db)):
         print(f"Unexpected error in get_results: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
+@router.get('/get-current-game')
+def get_current_game(request: Request, db: Session = Depends(get_db)):
+    """
+    Get the current active game state for a user
+    """
+    try:
+        user = get_user_from_cookie(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="User is not logged in")
+
+        # Get game session from Redis
+        redis_response = redis_client.get(f'user:{user["user_id"]}:game_session')
+        if not redis_response:
+            return {"has_active_game": False}
+
+        try:
+            game_data = json.loads(redis_response)
+        except json.JSONDecodeError:
+            return {"has_active_game": False}
+
+        # Check if game is still active
+        if game_data.get("current_round", 0) > game_data.get("total_rounds", 5):
+            return {"has_active_game": False}
+
+        current_round_index = game_data.get("current_round", 1) - 1
+
+        return {
+            "has_active_game": True,
+            "game_id": game_data.get("game_id"),
+            "user_id": user["user_id"],
+            "round_id": game_data.get("round_id"),
+            "current_round": game_data.get("current_round", 1),
+            "total_rounds": game_data.get("total_rounds", 5),
+            "current_pano_id": game_data.get("all_pano_ids", [])[current_round_index] if current_round_index < len(
+                game_data.get("all_pano_ids", [])) else "",
+            "current_lat": game_data.get("game_lats", [])[current_round_index] if current_round_index < len(
+                game_data.get("game_lats", [])) else 0,
+            "current_lng": game_data.get("game_lngs", [])[current_round_index] if current_round_index < len(
+                game_data.get("game_lngs", [])) else 0,
+            "current_location": game_data.get("all_actual_string_locations", [])[
+                current_round_index] if current_round_index < len(
+                game_data.get("all_actual_string_locations", [])) else "",
+            "total_score": game_data.get("total_score", 0),
+            "total_distance": game_data.get("total_distance", 0)
+        }
+
+    except Exception as e:
+        print(f"Error getting current game: {str(e)}")
+        return {"has_active_game": False}
+
+
 @router.post('/reset-game')
 async def reset_game(request: Request, db: Session = Depends(get_db)):
     user = get_user_from_cookie(request)

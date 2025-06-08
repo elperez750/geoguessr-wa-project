@@ -9,7 +9,7 @@ import {useGame} from "@/app/context/GameContext";
 import {useEffect} from "react";
 export default function Home() {
     const router = useRouter();
-    const {resetGame} = useGame();
+    const {resetGame, startGame} = useGame();
     useEffect(() => {
         resetGame()
     }, []);

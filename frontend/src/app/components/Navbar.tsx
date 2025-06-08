@@ -14,6 +14,7 @@ export default function Navbar() {
   
   const isGameActive = gameStatus === "active" || gameStatus === "loading"
 
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10)

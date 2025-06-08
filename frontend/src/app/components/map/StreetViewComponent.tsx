@@ -34,14 +34,7 @@ const StreetViewComponent = () => {
 
 
 
-    useEffect(() => {
-        if (!gameInitialized && gameStatus === "idle") {
-            console.log("Starting new game...");
-            startGame();
-        } else {
-            console.log("Game already initialized, skipping startGame");
-        }
-    }, [gameInitialized, gameStatus, startGame]);
+
 
     useEffect(() => {
         if (!streetViewLib || !streetViewRef.current || !panoId) return;
