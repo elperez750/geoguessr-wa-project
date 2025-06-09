@@ -21,6 +21,7 @@ Dependencies:
 from fastapi import FastAPI, Body, Query
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 from typing import List
 from geopy.geocoders import Nominatim
@@ -63,25 +64,30 @@ class Guess(BaseModel):
 # ============================================================================
 
 # Define allowed origins for CORS
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://geoguessr-wa-project.vercel.app"
-]
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]  # Allow all hosts for now
+)
 
-# Add CORS middleware to application
+# 2. Add CORS middleware second
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://geoguessr-wa-project.vercel.app",
+        "https://*.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
-        "Content-Type",
-        "Set-Cookie",
-        "Authorization",
         "Accept",
-        "Origin",
-        "X-Requested-With"
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "Cookie",
+        "Set-Cookie"
     ],
 )
 # Include API router with all routes defined in the api module
