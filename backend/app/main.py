@@ -1,4 +1,3 @@
-
 """
 GeoGuessr-WA Project - Main Application Module
 
@@ -65,60 +64,20 @@ class Guess(BaseModel):
 # CORS CONFIGURATION
 # ============================================================================
 
-# Custom CORS function to handle Vercel preview deployments
-def is_allowed_origin(origin: str) -> bool:
-    """Check if origin is allowed"""
-    allowed_patterns = [
-        r"^http://localhost:3000$",
-        r"^http://127\.0\.0\.1:3000$",
-        r"^https://geoguessr-wa-project\.vercel\.app$",
-        r"^https://geoguessr-wa-project-.*\.vercel\.app$",  # Vercel preview deployments
-    ]
-
-    for pattern in allowed_patterns:
-        if re.match(pattern, origin):
-            return True
-    return False
-
-# Custom CORS middleware
-@app.middleware("http")
-async def cors_handler(request: Request, call_next):
-    # Handle preflight requests
-    if request.method == "OPTIONS":
-        origin = request.headers.get("origin")
-
-        response = Response()
-
-        if origin and is_allowed_origin(origin):
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Max-Age"] = "86400"
-
-        return response
-
-    # Handle actual requests
-    response = await call_next(request)
-    origin = request.headers.get("origin")
-
-    if origin and is_allowed_origin(origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-
-    return response
-
-# Still add the standard CORS middleware as backup
+# Simple approach - just use the built-in CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "https://geoguessr-wa-project.vercel.app",
-        "https://geoguessr-wa-project-bgjj5fm5a-elperez750s-projects.vercel.app"
+        "https://geoguessr-wa-project-bgjj5fm5a-elperez750s-projects.vercel.app",
+        "https://*.vercel.app"  # This should catch all Vercel deployments
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Include API router with all routes defined in the api module
