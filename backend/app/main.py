@@ -64,21 +64,24 @@ class Guess(BaseModel):
 # CORS CONFIGURATION
 # ============================================================================
 
-# Simple approach - just use the built-in CORS middleware
+origins = [
+    "http://localhost:3000",            # Local development
+    "http://127.0.0.1:3000",            # Local development alternative
+    "https://geoguessr-wa-project.vercel.app",   # Your main production frontend
+
+]
+
+app = FastAPI()
+
+# CORS middleware **must** be configured like this for cookies to work
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://geoguessr-wa-project.vercel.app",
-        "https://geoguessr-wa-project-bgjj5fm5a-elperez750s-projects.vercel.app",
-        "https://*.vercel.app"  # This should catch all Vercel deployments
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"]
+    allow_origins=origins,           # Explicit list, no "*"
+    allow_credentials=True,          # Cookies/auth need this!
+    allow_methods=["*"],             # Or restrict to specific methods if you want
+    allow_headers=["*"],             # Accept any headers from frontend
 )
+
 
 # Include API router with all routes defined in the api module
 app.include_router(api_router)
