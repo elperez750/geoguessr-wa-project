@@ -309,7 +309,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
 
     const restoreGame = async () => {
-
         console.log("🔄 Attempting to restore game state...");
         setIsLoading(true);
         setGameStatus("loading");
@@ -319,7 +318,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             const response = await api.get('game/get-current-game');
             const data = response.data;
 
-            console.log("📥 Backend response:", data);
+            console.log("Backend response:", data);
 
             if (data.has_active_game) {
                 console.log("✅ Active game found, restoring state...");
@@ -371,12 +370,18 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             console.error("❌ Error restoring game:", error);
 
-            // On error, reset to safe defaults
+            // Reset to safe defaults
             resetGame();
 
             if (axios.isAxiosError(error)) {
-                // Don't show error toast for 404/401 - these are expected when no game exists
-                if (error.response?.status !== 404 && error.response?.status !== 401) {
+                // Handle authentication errors specifically
+                if (error.response?.status === 401) {
+                    console.log("🔐 User not authenticated - no game to restore");
+                    // Don't show error toast for auth issues
+                    return false;
+                }
+                // Don't show error toast for 404 - these are expected when no game exists
+                else if (error.response?.status !== 404) {
                     toast.error("Failed to restore game session");
                 }
             } else {

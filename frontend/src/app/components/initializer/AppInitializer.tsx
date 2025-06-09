@@ -1,11 +1,13 @@
 "use client"
 
 import { useGame } from "@/app/context/GameContext";
+import { useAuth } from "@/app/context/AuthContext"; // Add this import
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function AppInitializer({ children }: { children: React.ReactNode }) {
-    const { restoreGame } = useGame();
+    const { restoreGame, gameStatus, gameInitialized } = useGame();
+    const { isAuthenticated, isLoading: authLoading } = useAuth(); // Add this
     const router = useRouter();
     const pathname = usePathname();
     const [isInitializing, setIsInitializing] = useState(true);
@@ -14,23 +16,40 @@ export default function AppInitializer({ children }: { children: React.ReactNode
         const initializeApp = async () => {
             console.log("🚀 Initializing app...");
 
+            // Wait for auth to finish loading
+            if (authLoading) {
+                console.log("⏳ Waiting for auth to load...");
+                return;
+            }
+
             try {
-                // Try to restore game state
-                const gameRestored = await restoreGame();
+                // Only try to restore game if user is authenticated
+                if (isAuthenticated) {
+                    console.log("✅ User is authenticated, trying to restore game...");
 
-                if (gameRestored) {
-                    console.log("✅ Game restored, redirecting to play page");
+                    const gameRestored = await restoreGame();
 
-                    // If we're not already on the play page and game is active, redirect
-                    if (pathname !== '/play' && pathname !== '/results') {
-                        router.push('/play');
+                    if (gameRestored) {
+                        console.log("✅ Game restored, redirecting to play page");
+
+                        // If we're not already on the play page and game is active, redirect
+                        if (pathname !== '/play' && pathname !== '/results') {
+                            router.push('/play');
+                        }
+                    } else {
+                        console.log("❌ No active game found");
+
+                        // If we're on a game page but no active game, redirect to home
+                        if (['/play', '/results', '/loading'].includes(pathname)) {
+                            router.push('/');
+                        }
                     }
                 } else {
-                    console.log("❌ No active game found");
+                    console.log("❌ User not authenticated");
 
-                    // If we're on a game page but no active game, redirect to home
+                    // If user is not authenticated and on protected pages, redirect to login/home
                     if (['/play', '/results', '/loading'].includes(pathname)) {
-                        router.push('/');
+                        router.push('/login'); // or wherever your login page is
                     }
                 }
             } catch (error) {
@@ -46,15 +65,17 @@ export default function AppInitializer({ children }: { children: React.ReactNode
         };
 
         initializeApp();
-    }, [pathname, restoreGame, router]); // Only run once on app load
+    }, [authLoading, isAuthenticated]); // Add authLoading and isAuthenticated as dependencies
 
-    // Show loading screen while initializing
-    if (isInitializing) {
+    // Show loading screen while initializing or auth is loading
+    if (isInitializing || authLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-100">
                 <div className="text-center">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Initializing...</p>
+                    <p className="text-gray-600">
+                        {authLoading ? "Checking authentication..." : "Initializing..."}
+                    </p>
                 </div>
             </div>
         );
