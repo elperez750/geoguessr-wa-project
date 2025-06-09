@@ -8,7 +8,9 @@ export const GetInfoFromBackend = () => {
 
     return (
         <div className="w-full">
-            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY} libraries={["streetView"]}>
+            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY || ""}
+            libraries={["streetView"]}
+            >
                 <StreetViewComponent />
             </APIProvider>
         </div>
