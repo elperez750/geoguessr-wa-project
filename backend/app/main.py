@@ -73,11 +73,17 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,  # Allow cookies to be sent with requests
-    allow_methods=["*"],    # Allow all HTTP methods
-    allow_headers=["Content-Type, Set-Cookie"],  # Allow these headers
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Set-Cookie",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With"
+    ],
 )
-
 # Include API router with all routes defined in the api module
 app.include_router(api_router)
 
