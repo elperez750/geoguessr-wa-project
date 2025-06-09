@@ -73,7 +73,8 @@ const ResultMapComponent: React.FC<ResultMapComponentProps> = ({
 
     return (
         <>
-            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY} libraries={["streetView"]}>
+            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY || ""}
+                         libraries={["streetView"]}>
             <Map
                 style={{ width: "100%", height: "100%" }}
                 defaultCenter={washingtonCenter}
