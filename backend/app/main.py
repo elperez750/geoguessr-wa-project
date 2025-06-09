@@ -1,3 +1,4 @@
+
 """
 GeoGuessr-WA Project - Main Application Module
 
@@ -18,7 +19,7 @@ Dependencies:
 - PostgreSQL: Database for persistent storage (via imported modules)
 """
 
-from fastapi import FastAPI, Body, Query
+from fastapi import FastAPI, Body, Query, Request, Response
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -31,6 +32,7 @@ from app.api import api_router
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import re
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -38,8 +40,8 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# Initialize geocoding service
 
+# Initialize geocoding service
 geolocator = Nominatim(user_agent="geoguessr-wa-project")
 
 # ============================================================================
@@ -63,39 +65,64 @@ class Guess(BaseModel):
 # CORS CONFIGURATION
 # ============================================================================
 
-# Define allowed origins for CORS
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"]  # Allow all hosts for now
-)
+# Custom CORS function to handle Vercel preview deployments
+def is_allowed_origin(origin: str) -> bool:
+    """Check if origin is allowed"""
+    allowed_patterns = [
+        r"^http://localhost:3000$",
+        r"^http://127\.0\.0\.1:3000$",
+        r"^https://geoguessr-wa-project\.vercel\.app$",
+        r"^https://geoguessr-wa-project-.*\.vercel\.app$",  # Vercel preview deployments
+    ]
 
-# 2. Add CORS middleware second
+    for pattern in allowed_patterns:
+        if re.match(pattern, origin):
+            return True
+    return False
+
+# Custom CORS middleware
+@app.middleware("http")
+async def cors_handler(request: Request, call_next):
+    # Handle preflight requests
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin")
+
+        response = Response()
+
+        if origin and is_allowed_origin(origin):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Max-Age"] = "86400"
+
+        return response
+
+    # Handle actual requests
+    response = await call_next(request)
+    origin = request.headers.get("origin")
+
+    if origin and is_allowed_origin(origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    return response
+
+# Still add the standard CORS middleware as backup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
         "https://geoguessr-wa-project.vercel.app",
-        "https://*.vercel.app"
+        "https://geoguessr-wa-project-bgjj5fm5a-elperez750s-projects.vercel.app"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Accept",
-        "Accept-Language",
-        "Content-Language",
-        "Content-Type",
-        "Authorization",
-        "Cookie",
-        "Set-Cookie"
-    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
 # Include API router with all routes defined in the api module
 app.include_router(api_router)
-
-# ============================================================================
-# BASE ROUTES
-# ============================================================================
 
 @app.get("/")
 def root():
@@ -106,5 +133,3 @@ def root():
         dict: Simple message indicating the API is operational
     """
     return {"message": "updated message"}
-
-
