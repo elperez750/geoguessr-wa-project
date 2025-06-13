@@ -79,7 +79,10 @@ def set_cookie(response, access_token, expiry_days: int = 1):
         "access_token",
         value=access_token,
         httponly=True,
-        expires=expires
+        expires=expires,
+        secure=True,
+        samesite='none'
+
     )
     return response
 
