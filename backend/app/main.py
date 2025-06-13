@@ -71,13 +71,12 @@ origins = [
 
 ]
 
-app = FastAPI()
 
 # CORS middleware **must** be configured like this for cookies to work
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,           # Explicit list, no "*"
-    allow_credentials=True,          # Cookies/auth need this!
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],             # Or restrict to specific methods if you want
     allow_headers=["*"],             # Accept any headers from frontend
 )

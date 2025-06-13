@@ -66,6 +66,9 @@ export const ScoreDisplay = () => {
                     )}
                 </div>
 
+
+              
+
                 {/* Score Rating based on actual scoring algorithm */}
                 <div className="text-sm">
                     <span className={`inline-block px-3 py-1 rounded-full text-white font-medium ${
