@@ -21,12 +21,14 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from datetime import datetime, timedelta
 from sqlalchemy.sql.functions import user
 
+# Assuming redis_client is imported correctly from your services
 from app.services import create_access_token, redis_client
 from pydantic import BaseModel
 from app.db import get_db
 from sqlalchemy.orm import Session
 
-from app.services.authentication import check_if_user_exists, create_user, verify_credentials, get_user_from_cookie, set_cookie
+from app.services.authentication import check_if_user_exists, create_user, verify_credentials, get_user_from_cookie, \
+    set_cookie
 
 router = APIRouter()
 
@@ -60,6 +62,7 @@ class UserResponse(BaseModel):
     email: str
     created_at: datetime
 
+
 # ============================================================================
 # AUTHENTICATION ROUTES
 # ============================================================================
@@ -90,10 +93,11 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already registered")
     else:
         new_user = create_user(db, user.username, user.password, user.email)
-        return {'user': new_user}
+        # Assuming create_user returns a dict that matches UserResponse
+        return new_user
 
 
-@router.post('/login', response_model=UserResponse, status_code=200,)
+@router.post('/login', response_model=UserResponse, status_code=200, )
 async def login_user(request: UserLogin, response: Response, db: Session = Depends(get_db)):
     """
     Authenticate a user and establish a session
@@ -121,33 +125,46 @@ async def login_user(request: UserLogin, response: Response, db: Session = Depen
     Raises:
         HTTPException: 401 if credentials are invalid
     """
-    user = verify_credentials(db, request.email, request.password)
-    if user:
-        access_token = create_access_token(user['id'], user['username'], user['email'])
+    user_data = verify_credentials(db, request.email, request.password)
+    if user_data:
+        access_token = create_access_token(user_data['id'], user_data['username'], user_data['email'])
         set_cookie(response, access_token)
 
-        return user
+        return user_data
     else:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
 
 @router.post('/logout')
-def logout_user(request: Request, response: Response, db: Session = Depends(get_db)):
+def logout_user(request: Request, response: Response):
     """
-    Logs out the user by deleting their authentication cookie.
-    
+    Logs out the user by deleting their authentication cookie and clearing their session.
+
     Args:
+        request (Request): The HTTP request object.
         response (Response): The HTTP response object used to delete the cookie.
-    
+
     Returns:
         dict: A message confirming the user has been logged out.
     """
-    # Assuming the cookie name is "auth" (replace with your actual cookie name)
-    user = get_user_from_cookie(request)
+    user = None
+    try:
+        # It's safer to get the user inside a try...except block
+        user = get_user_from_cookie(request)
+    except HTTPException:
+        # This will catch the 401 error if the cookie is missing or invalid,
+        # but we still want to proceed to delete the bad cookie.
+        pass
+
+    if user and redis_client:
+        # If the user was successfully identified, clear their game session from the cache.
+        game_session_key = f'user:{user["user_id"]}:game_session'
+        redis_client.delete(game_session_key)
+
+    # Always delete the cookie, even if the user wasn't found.
+    # This cleans up bad/expired cookies from the browser.
     response.delete_cookie(key="access_token")
-    game_session_key = f'user:{user["user_id"]}:game_session'
-    redis_client.delete(game_session_key)
-    
+
     return {"message": "You have been logged out successfully."}
 
 
@@ -173,4 +190,7 @@ def get_user_details(request: Request):
     if current_user:
         return current_user
     else:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        # This will be caught by the exception handler in get_user_from_cookie
+        # but it's good practice to be explicit.
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+
