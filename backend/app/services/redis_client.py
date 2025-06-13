@@ -19,7 +19,7 @@ Usage:
 import redis
 import os
 
-REDIS_URL = os.genenv("REDIS_URL")
+REDIS_URL = os.getenv("REDIS_URL")
 # Initialize Redis client with default local connection settings
 # The client is used throughout the application for caching
 print(f"Attempting to connect to Redis at {REDIS_URL}...")
