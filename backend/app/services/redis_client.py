@@ -17,7 +17,10 @@ Usage:
 """
 
 import redis
+import os
 
+REDIS_URL = os.genenv("REDIS_URL")
 # Initialize Redis client with default local connection settings
 # The client is used throughout the application for caching
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+print(f"Attempting to connect to Redis at {REDIS_URL}...")
+redis_client = redis.Redis.from_url(REDIS_URL)
